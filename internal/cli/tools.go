@@ -14,6 +14,7 @@ import (
 	"github.com/codebeauty/panel/internal/adapter"
 	"github.com/codebeauty/panel/internal/config"
 	"github.com/codebeauty/panel/internal/runner"
+	"github.com/codebeauty/panel/internal/tui"
 )
 
 func newToolsCmd() *cobra.Command {
@@ -53,13 +54,36 @@ func newToolsListCmd() *cobra.Command {
 			}
 			sort.Strings(ids)
 
-			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tADAPTER\tBINARY\tENABLED\tEXPERT")
-			for _, id := range ids {
-				t := cfg.Tools[id]
-				fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n", id, t.Adapter, t.Binary, t.Enabled, t.Expert)
+			if !tui.IsTTY() {
+				w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+				fmt.Fprintln(w, "ID\tADAPTER\tBINARY\tENABLED\tEXPERT")
+				for _, id := range ids {
+					t := cfg.Tools[id]
+					fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n", id, t.Adapter, t.Binary, t.Enabled, t.Expert)
+				}
+				w.Flush()
+				return nil
 			}
-			w.Flush()
+
+			var rows [][]string
+			for _, id := range ids {
+				tc := cfg.Tools[id]
+				p := ""
+				if tc.Expert != "" {
+					p = tui.StyleMuted.Render(tc.Expert)
+				}
+				rows = append(rows, []string{
+					id,
+					tc.Adapter,
+					tui.EnabledIcon(tc.Enabled),
+					p,
+				})
+			}
+			t := tui.Table{
+				Headers: []string{"ID", "ADAPTER", "ENABLED", "EXPERT"},
+				Rows:    rows,
+			}
+			fmt.Print(t.Render())
 			return nil
 		},
 	}

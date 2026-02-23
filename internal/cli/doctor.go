@@ -9,9 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/codebeauty/panel/internal/config"
+	"github.com/codebeauty/panel/internal/tui"
 )
 
 func newDoctorCmd() *cobra.Command {
@@ -19,29 +21,58 @@ func newDoctorCmd() *cobra.Command {
 		Use:   "doctor",
 		Short: "Check configuration and tool availability",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			rich := tui.IsTTY()
 			failed := false
+
+			pass := func(msg string) {
+				if rich {
+					fmt.Fprintf(os.Stderr, "  %s %s\n", tui.IconSuccess, msg)
+				} else {
+					fmt.Fprintf(os.Stderr, "✓ %s\n", msg)
+				}
+			}
+			fail := func(msg string) {
+				if rich {
+					fmt.Fprintf(os.Stderr, "  %s %s\n", tui.IconError, msg)
+				} else {
+					fmt.Fprintf(os.Stderr, "✗ %s\n", msg)
+				}
+			}
+			warn := func(msg string) {
+				if rich {
+					fmt.Fprintf(os.Stderr, "  %s %s\n", tui.IconWarning, msg)
+				} else {
+					fmt.Fprintf(os.Stderr, "⚠ %s\n", msg)
+				}
+			}
+			boldName := func(name string) string {
+				if rich {
+					return lipgloss.NewStyle().Bold(true).Render(name)
+				}
+				return name
+			}
 
 			// 1. Config file existence
 			cfgPath := config.GlobalConfigPath()
 			if _, err := os.Stat(cfgPath); err != nil {
-				fmt.Fprintf(os.Stderr, "⚠ Config file not found: %s (using defaults)\n", cfgPath)
+				warn(fmt.Sprintf("Config file not found: %s (using defaults)", cfgPath))
 			} else {
-				fmt.Fprintf(os.Stderr, "✓ Config file: %s\n", cfgPath)
+				pass(fmt.Sprintf("Config file: %s", cfgPath))
 			}
 
 			// 2. Config parseable
 			cfg, err := config.Load()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "✗ Config invalid: %s\n", err)
+				fail(fmt.Sprintf("Config invalid: %s", err))
 				return fmt.Errorf("config validation failed")
 			}
-			fmt.Fprintf(os.Stderr, "✓ Config loaded successfully\n")
+			pass("Config loaded successfully")
 
 			// 3. Tool count
 			if len(cfg.Tools) == 0 {
-				fmt.Fprintf(os.Stderr, "⚠ No tools configured — run 'panel init'\n")
+				warn("No tools configured — run 'panel init'")
 			} else {
-				fmt.Fprintf(os.Stderr, "✓ %d tool(s) configured\n", len(cfg.Tools))
+				pass(fmt.Sprintf("%d tool(s) configured", len(cfg.Tools)))
 			}
 
 			// 4. Per-tool checks (sorted for deterministic output)
@@ -53,29 +84,52 @@ func newDoctorCmd() *cobra.Command {
 
 			for _, toolID := range toolNames {
 				tc := cfg.Tools[toolID]
+				if rich {
+					fmt.Fprintf(os.Stderr, "\n  %s\n", boldName(toolID))
+				}
 
 				// Binary exists
 				binPath := findBinary(tc.Binary)
 				if binPath == "" {
-					fmt.Fprintf(os.Stderr, "✗ %s: binary not found (%s)\n", toolID, tc.Binary)
+					if rich {
+						fail(fmt.Sprintf("  Binary: %s (not found)", tc.Binary))
+					} else {
+						fail(fmt.Sprintf("%s: binary not found (%s)", toolID, tc.Binary))
+					}
 					failed = true
 				} else {
-					fmt.Fprintf(os.Stderr, "✓ %s: binary found at %s\n", toolID, binPath)
+					if rich {
+						pass(fmt.Sprintf("  Binary: %s", binPath))
+					} else {
+						pass(fmt.Sprintf("%s: binary found at %s", toolID, binPath))
+					}
 
 					// Version check (only if binary found)
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					out, err := exec.CommandContext(ctx, binPath, "--version").CombinedOutput()
 					cancel()
 					if err != nil {
-						fmt.Fprintf(os.Stderr, "⚠ %s: could not determine version\n", toolID)
+						if rich {
+							warn("  Could not determine version")
+						} else {
+							warn(fmt.Sprintf("%s: could not determine version", toolID))
+						}
 					} else {
 						firstLine := strings.TrimSpace(strings.SplitN(string(out), "\n", 2)[0])
-						fmt.Fprintf(os.Stderr, "✓ %s: version %s\n", toolID, firstLine)
+						if rich {
+							pass(fmt.Sprintf("  Version: %s", firstLine))
+						} else {
+							pass(fmt.Sprintf("%s: version %s", toolID, firstLine))
+						}
 					}
 				}
 
 				// Read-only info
-				fmt.Fprintf(os.Stderr, "  read-only: %s\n", cfg.Defaults.ReadOnly)
+				if rich {
+					fmt.Fprintf(os.Stderr, "      Read-only: %s\n", cfg.Defaults.ReadOnly)
+				} else {
+					fmt.Fprintf(os.Stderr, "  read-only: %s\n", cfg.Defaults.ReadOnly)
+				}
 			}
 
 			// 5. Group validation
@@ -85,18 +139,22 @@ func newDoctorCmd() *cobra.Command {
 			}
 			sort.Strings(groupNames)
 
+			if rich && len(groupNames) > 0 {
+				fmt.Fprintln(os.Stderr)
+			}
+
 			for _, groupName := range groupNames {
 				members := cfg.Groups[groupName]
 				allValid := true
 				for _, member := range members {
 					if _, exists := cfg.Tools[member]; !exists {
-						fmt.Fprintf(os.Stderr, "✗ group %s: unknown tool %s\n", groupName, member)
+						fail(fmt.Sprintf("group %s: unknown tool %s", groupName, member))
 						failed = true
 						allValid = false
 					}
 				}
 				if allValid {
-					fmt.Fprintf(os.Stderr, "✓ group %s: %d tool(s)\n", groupName, len(members))
+					pass(fmt.Sprintf("group %s: %d tool(s)", groupName, len(members)))
 				}
 			}
 

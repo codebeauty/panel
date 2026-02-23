@@ -23,6 +23,7 @@ import (
 	"github.com/codebeauty/panel/internal/output"
 	"github.com/codebeauty/panel/internal/expert"
 	"github.com/codebeauty/panel/internal/runner"
+	"github.com/codebeauty/panel/internal/tui"
 	"github.com/codebeauty/panel/internal/ui"
 )
 
@@ -83,6 +84,21 @@ func newRunCmd() *cobra.Command {
 				ro = validated
 			}
 
+			// --- TUI path: interactive terminal with alt-screen ---
+			if shouldUseTUI(jsonOutput, dryRun) {
+				toolIDs, preSelected, err := resolveToolIDsForTUI(cfg, toolsFlag, groupFlag)
+				if err != nil {
+					return err
+				}
+				if len(toolIDs) == 0 {
+					return fmt.Errorf("no tools configured — run 'panel init' to set up tools")
+				}
+				toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
+
+				return runTUI(cfg, prompt, toolIDs, ro, expertFlag, preSelected)
+			}
+
+			// --- Non-TUI path: JSON, dry-run, piped, or non-interactive ---
 			toolIDs, err := resolveTools(cfg, toolsFlag, groupFlag)
 			if err != nil {
 				return err
@@ -231,7 +247,12 @@ func newRunCmd() *cobra.Command {
 				return enc.Encode(manifest)
 			}
 
-			printSummary(results, runDir)
+			// Rich summary for TTY, plain for non-TTY
+			if tui.IsTTY() {
+				printRichSummary(results, runDir)
+			} else {
+				printSummary(results, runDir)
+			}
 			return nil
 		},
 	}
@@ -381,6 +402,17 @@ func selectToolsInteractive(toolIDs []string) ([]string, error) {
 		return toolIDs, nil
 	}
 	return selected, nil
+}
+
+func printRichSummary(results []runner.Result, runDir string) {
+	fmt.Fprintf(os.Stderr, "\n%s\n", tui.StyleBold.Render("--- Results ---"))
+	for _, r := range results {
+		icon := tui.StatusIcon(string(r.Status))
+		fmt.Fprintf(os.Stderr, " %s %-20s %s %s %s\n",
+			icon, r.ToolID, r.Status, tui.StyleMuted.Render(fmt.Sprintf("(exit %d)", r.ExitCode)),
+			tui.StyleMuted.Render(r.Duration.Round(time.Millisecond).String()))
+	}
+	fmt.Fprintf(os.Stderr, "\n%s %s\n", tui.StyleBold.Render("Output:"), runDir)
 }
 
 func printSummary(results []runner.Result, runDir string) {
