@@ -5,9 +5,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/codebeauty/panel/internal/config"
 	"github.com/codebeauty/panel/internal/expert"
 )
 
@@ -139,7 +142,9 @@ func newExpertsResetCmd() *cobra.Command {
 }
 
 func newExpertsDeleteCmd() *cobra.Command {
-	return &cobra.Command{
+	var force bool
+
+	cmd := &cobra.Command{
 		Use:   "delete <id>",
 		Short: "Delete an expert",
 		Args:  cobra.ExactArgs(1),
@@ -153,6 +158,19 @@ func newExpertsDeleteCmd() *cobra.Command {
 			if _, err := os.Stat(path); os.IsNotExist(err) {
 				return fmt.Errorf("expert %q not found", id)
 			}
+
+			if !force {
+				cfg, err := config.Load()
+				if err != nil {
+					return err
+				}
+				refs := findExpertTeamRefs(id, cfg)
+				if len(refs) > 0 {
+					return fmt.Errorf("expert %q is used in teams: %s. Use --force to delete anyway",
+						id, strings.Join(refs, ", "))
+				}
+			}
+
 			if err := os.Remove(path); err != nil {
 				return err
 			}
@@ -160,6 +178,24 @@ func newExpertsDeleteCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Delete even if referenced by teams")
+	return cmd
+}
+
+// findExpertTeamRefs returns team names that reference the given expert ID.
+func findExpertTeamRefs(expertID string, cfg *config.Config) []string {
+	var refs []string
+	for name, members := range cfg.Teams {
+		for _, m := range members {
+			if m == expertID {
+				refs = append(refs, name)
+				break
+			}
+		}
+	}
+	sort.Strings(refs)
+	return refs
 }
 
 // syncDiffPrompt interactively asks the user what to do with a modified preset.
