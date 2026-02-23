@@ -21,6 +21,7 @@ type Config struct {
 	Defaults DefaultsConfig        `json:"defaults"`
 	Tools    map[string]ToolConfig `json:"tools"`
 	Groups   map[string][]string   `json:"groups"`
+	Teams    map[string][]string   `json:"teams"`
 }
 
 type DefaultsConfig struct {
@@ -50,6 +51,7 @@ func NewDefaults() *Config {
 		},
 		Tools:  make(map[string]ToolConfig),
 		Groups: make(map[string][]string),
+		Teams:  make(map[string][]string),
 	}
 }
 
@@ -101,6 +103,9 @@ func LoadFromFile(path string) (*Config, error) {
 	}
 	if cfg.Groups == nil {
 		cfg.Groups = make(map[string][]string)
+	}
+	if cfg.Teams == nil {
+		cfg.Teams = make(map[string][]string)
 	}
 	return cfg, nil
 }

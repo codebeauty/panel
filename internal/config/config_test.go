@@ -217,6 +217,51 @@ func TestToolConfigExpertOmitEmpty(t *testing.T) {
 	assert.NotContains(t, string(data), "expert")
 }
 
+func TestNewDefaultsHasTeams(t *testing.T) {
+	cfg := NewDefaults()
+	assert.NotNil(t, cfg.Teams)
+	assert.Empty(t, cfg.Teams)
+}
+
+func TestLoadFromFileWithTeams(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.json")
+	data := `{
+		"tools": {"claude": {"binary": "claude", "adapter": "claude", "enabled": true}},
+		"teams": {"code-review": ["security", "architect", "reviewer"]}
+	}`
+	os.WriteFile(cfgPath, []byte(data), 0o600)
+
+	cfg, err := LoadFromFile(cfgPath)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"security", "architect", "reviewer"}, cfg.Teams["code-review"])
+}
+
+func TestLoadFromFileTeamsNilInit(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.json")
+	data := `{"tools": {}}`
+	os.WriteFile(cfgPath, []byte(data), 0o600)
+
+	cfg, err := LoadFromFile(cfgPath)
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg.Teams)
+}
+
+func TestSaveAndLoadWithTeams(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+
+	cfg := NewDefaults()
+	cfg.Teams["review"] = []string{"security", "architect"}
+	err := Save(cfg, path)
+	assert.NoError(t, err)
+
+	loaded, err := LoadFromFile(path)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"security", "architect"}, loaded.Teams["review"])
+}
+
 func TestStricterReadOnly(t *testing.T) {
 	tests := []struct {
 		a, b ReadOnlyMode
