@@ -104,6 +104,9 @@ func newRunCmd() *cobra.Command {
 					if !ok {
 						return fmt.Errorf("unknown team: %q", teamFlag)
 					}
+					if len(teamExperts) == 0 {
+						return fmt.Errorf("team %q has no experts", teamFlag)
+					}
 					toolIDs = expandTeamCrossProduct(toolIDs, teamExperts, cfg)
 					preSelected = true // skip TUI tool selection, team defines the set
 				} else {
@@ -134,6 +137,9 @@ func newRunCmd() *cobra.Command {
 				if !ok {
 					return fmt.Errorf("unknown team: %q", teamFlag)
 				}
+				if len(teamExperts) == 0 {
+					return fmt.Errorf("team %q has no experts", teamFlag)
+				}
 				toolIDs = expandTeamCrossProduct(toolIDs, teamExperts, cfg)
 
 				// Confirmation prompt for large cross-products
@@ -158,9 +164,17 @@ func newRunCmd() *cobra.Command {
 			if dryRun {
 				var dryExpertIDs []string
 				if teamFlag != "" {
-					dryExpertIDs, _, _ = resolveTeamExperts(toolIDs, expert.Dir())
+					eids, _, dryErr := resolveTeamExperts(toolIDs, expert.Dir())
+					if dryErr != nil {
+						fmt.Fprintf(os.Stderr, "warning: %v\n", dryErr)
+					}
+					dryExpertIDs = eids
 				} else {
-					dryExpertIDs, _, _ = resolveToolExperts(tools, cfg, expertFlag)
+					eids, _, dryErr := resolveToolExperts(tools, cfg, expertFlag)
+					if dryErr != nil {
+						fmt.Fprintf(os.Stderr, "warning: %v\n", dryErr)
+					}
+					dryExpertIDs = eids
 				}
 				params := adapter.RunParams{
 					Prompt:     prompt,

@@ -37,6 +37,15 @@ func TestExpandTeamDeduplicatesTools(t *testing.T) {
 	assert.Equal(t, []string{"claude@security"}, result)
 }
 
+func TestExpandTeamEmptyExperts(t *testing.T) {
+	cfg := config.NewDefaults()
+	cfg.Tools["claude"] = config.ToolConfig{Binary: "claude", Adapter: "claude", Enabled: true}
+
+	result := expandTeamCrossProduct([]string{"claude"}, []string{}, cfg)
+
+	assert.Empty(t, result)
+}
+
 func TestExpandTeamSingleToolSingleExpert(t *testing.T) {
 	cfg := config.NewDefaults()
 	cfg.Tools["claude"] = config.ToolConfig{Binary: "claude", Adapter: "claude", Enabled: true}
