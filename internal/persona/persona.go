@@ -78,6 +78,76 @@ func BuiltinIDs() []string {
 	return ids
 }
 
+// SyncAction determines what to do when a built-in preset differs from disk.
+type SyncAction int
+
+const (
+	SyncSkip      SyncAction = iota // keep existing
+	SyncOverwrite                    // replace with built-in
+	SyncBackup                       // backup existing, then write built-in
+)
+
+// DiffFunc is called when an existing persona differs from the built-in.
+type DiffFunc func(id, existing, builtin string) SyncAction
+
+// SyncBuiltins writes built-in presets to the personas directory.
+// Iterates in sorted order for deterministic behavior.
+// If onDiff is nil, modified files are skipped silently.
+// Returns the number of files written.
+func SyncBuiltins(dir string, onDiff DiffFunc) (int, error) {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return 0, fmt.Errorf("creating personas dir: %w", err)
+	}
+
+	written := 0
+	for _, id := range BuiltinIDs() {
+		content := Builtins[id]
+		path := filepath.Join(dir, id+".md")
+
+		existing, err := os.ReadFile(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+					return written, fmt.Errorf("writing %s: %w", id, err)
+				}
+				written++
+				continue
+			}
+			return written, err
+		}
+
+		if string(existing) == content {
+			continue
+		}
+
+		action := SyncSkip
+		if onDiff != nil {
+			action = onDiff(id, string(existing), content)
+		}
+
+		switch action {
+		case SyncOverwrite:
+			if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+				return written, err
+			}
+			written++
+		case SyncBackup:
+			backupPath := filepath.Join(dir, id+".backup.md")
+			if err := os.WriteFile(backupPath, existing, 0o600); err != nil {
+				return written, err
+			}
+			if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+				return written, err
+			}
+			written++
+		case SyncSkip:
+			// do nothing
+		}
+	}
+
+	return written, nil
+}
+
 // Builtins contains the 6 built-in persona presets.
 // Keys are persona IDs, values are the full markdown content.
 var Builtins = map[string]string{

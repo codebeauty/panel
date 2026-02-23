@@ -120,3 +120,97 @@ func TestListMissingDir(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, ids)
 }
+
+func TestSyncBuiltinsNewDir(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "personas")
+	written, err := SyncBuiltins(dir, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, 6, written)
+
+	ids, _ := List(dir)
+	assert.Len(t, ids, 6)
+
+	info, _ := os.Stat(filepath.Join(dir, "security.md"))
+	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
+}
+
+func TestSyncBuiltinsSkipsIdentical(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "security.md"), []byte(Builtins["security"]), 0o600)
+
+	written, err := SyncBuiltins(dir, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, 5, written)
+}
+
+func TestSyncBuiltinsDiffCallback(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "security.md"), []byte("custom security persona"), 0o600)
+
+	var diffCalled bool
+	var diffID string
+	callback := func(id, existing, builtin string) SyncAction {
+		diffCalled = true
+		diffID = id
+		return SyncSkip
+	}
+
+	written, err := SyncBuiltins(dir, callback)
+	assert.NoError(t, err)
+	assert.True(t, diffCalled)
+	assert.Equal(t, "security", diffID)
+	assert.Equal(t, 5, written)
+
+	data, _ := os.ReadFile(filepath.Join(dir, "security.md"))
+	assert.Equal(t, "custom security persona", string(data))
+}
+
+func TestSyncBuiltinsOverwrite(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "security.md"), []byte("old content"), 0o600)
+
+	callback := func(id, existing, builtin string) SyncAction {
+		return SyncOverwrite
+	}
+
+	written, err := SyncBuiltins(dir, callback)
+	assert.NoError(t, err)
+	assert.Equal(t, 6, written)
+
+	data, _ := os.ReadFile(filepath.Join(dir, "security.md"))
+	assert.Equal(t, Builtins["security"], string(data))
+}
+
+func TestSyncBuiltinsBackup(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "security.md"), []byte("custom content"), 0o600)
+
+	callback := func(id, existing, builtin string) SyncAction {
+		return SyncBackup
+	}
+
+	written, err := SyncBuiltins(dir, callback)
+	assert.NoError(t, err)
+	assert.Equal(t, 6, written)
+
+	data, _ := os.ReadFile(filepath.Join(dir, "security.md"))
+	assert.Equal(t, Builtins["security"], string(data))
+
+	backup, _ := os.ReadFile(filepath.Join(dir, "security.backup.md"))
+	assert.Equal(t, "custom content", string(backup))
+}
+
+func TestSyncBuiltinsDeterministicOrder(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "architect.md"), []byte("custom"), 0o600)
+	os.WriteFile(filepath.Join(dir, "security.md"), []byte("custom"), 0o600)
+
+	var callOrder []string
+	callback := func(id, existing, builtin string) SyncAction {
+		callOrder = append(callOrder, id)
+		return SyncSkip
+	}
+
+	SyncBuiltins(dir, callback)
+	assert.Equal(t, []string{"architect", "security"}, callOrder)
+}
