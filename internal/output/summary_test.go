@@ -236,6 +236,25 @@ Some body text with enough words to count.
 	})
 }
 
+func TestBuildSummaryWithPersona(t *testing.T) {
+	manifest := &Manifest{
+		Prompt: "review this",
+		Config: ManifestConfig{ReadOnly: "bestEffort"},
+		Results: []ManifestResult{
+			{ToolID: "claude", Status: "success", Duration: "1m0s", OutputFile: "claude.md", Persona: "security"},
+			{ToolID: "gemini", Status: "success", Duration: "2m0s", OutputFile: "gemini.md"},
+		},
+	}
+
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "claude.md"), []byte("some response"), 0o600)
+	os.WriteFile(filepath.Join(dir, "gemini.md"), []byte("another response"), 0o600)
+
+	summary := BuildSummary(manifest, dir)
+	assert.Contains(t, summary, "Persona: security")
+	assert.NotContains(t, summary, "Persona: \n", "should not show persona line for tools without persona")
+}
+
 func TestWriteSummary(t *testing.T) {
 	dir := t.TempDir()
 	content := "# Run Summary\nTest content\n"
