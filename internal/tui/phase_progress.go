@@ -9,28 +9,41 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// padToolID returns a display-formatted tool ID padded to the given visual width.
+func padToolID(id string, maxWidth int) string {
+	display := FormatToolID(id)
+	pad := max(0, maxWidth-lipgloss.Width(display))
+	return display + strings.Repeat(" ", pad)
+}
+
 type ProgressModel struct {
-	ToolIDs  []string
-	Statuses map[string]*ToolProgress
-	Spinner  spinner.Model
-	Start    time.Time
+	ToolIDs    []string
+	Statuses   map[string]*ToolProgress
+	Spinner    spinner.Model
+	Start      time.Time
+	maxIDWidth int // max visual width of formatted tool IDs
 }
 
 func NewProgressModel(toolIDs []string) ProgressModel {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(ColorPrimary)
+	s.Style = StylePrimary
 
 	statuses := make(map[string]*ToolProgress, len(toolIDs))
+	maxW := 0
 	for _, id := range toolIDs {
 		statuses[id] = &ToolProgress{Status: "pending"}
+		if w := lipgloss.Width(FormatToolID(id)); w > maxW {
+			maxW = w
+		}
 	}
 
 	return ProgressModel{
-		ToolIDs:  toolIDs,
-		Statuses: statuses,
-		Spinner:  s,
-		Start:    time.Now(),
+		ToolIDs:    toolIDs,
+		Statuses:   statuses,
+		Spinner:    s,
+		Start:      time.Now(),
+		maxIDWidth: maxW,
 	}
 }
 
@@ -43,50 +56,82 @@ func (m ProgressModel) AllDone() bool {
 	return true
 }
 
+// statusWidth is the visual width of the longest status label ("cancelled" = 9).
+const statusWidth = 9
+
+// padStatus pads a styled status string to statusWidth using the unstyled label width.
+func padStatus(styled, label string) string {
+	pad := max(0, statusWidth-len(label))
+	return styled + strings.Repeat(" ", pad)
+}
+
 func (m ProgressModel) View() string {
 	var b strings.Builder
 
-	title := lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render("Running")
+	title := StyleTitle.Render("Running")
 	elapsed := time.Since(m.Start).Round(time.Second)
 	b.WriteString(fmt.Sprintf("  %s  %s\n\n", title, StyleMuted.Render(elapsed.String())))
 
-	done := 0
-	total := len(m.ToolIDs)
-
+	// Pre-compute max duration width for alignment.
+	maxDurW := 0
 	for _, id := range m.ToolIDs {
 		s := m.Statuses[id]
+		var durStr string
 		switch s.Status {
-		case "pending":
-			b.WriteString(fmt.Sprintf("  %s %-20s %s\n",
-				IconPending, id, StyleMuted.Render("waiting")))
 		case "running":
-			dur := time.Since(s.Started).Round(time.Second)
-			b.WriteString(fmt.Sprintf("  %s %-20s %s  %s\n",
-				m.Spinner.View(), id, StylePrimary.Render("running"), StyleMuted.Render(dur.String())))
-		case "success":
-			done++
-			b.WriteString(fmt.Sprintf("  %s %-20s %s  %s  %s\n",
-				IconSuccess, id, StyleSuccess.Render("done"),
-				StyleMuted.Render(s.Duration.Round(time.Millisecond).String()),
-				StyleMuted.Render(fmt.Sprintf("%d words", s.Words))))
-		case "failed":
-			done++
-			b.WriteString(fmt.Sprintf("  %s %-20s %s  %s\n",
-				IconError, id, StyleError.Render("failed"),
-				StyleMuted.Render(s.Duration.Round(time.Millisecond).String())))
-		case "timeout":
-			done++
-			b.WriteString(fmt.Sprintf("  %s %-20s %s  %s\n",
-				StyleWarning.Render("⏱"), id, StyleWarning.Render("timeout"),
-				StyleMuted.Render(s.Duration.Round(time.Millisecond).String())))
-		case "cancelled":
-			done++
-			b.WriteString(fmt.Sprintf("  %s %-20s %s\n",
-				StyleMuted.Render("−"), id, StyleMuted.Render("cancelled")))
+			durStr = time.Since(s.Started).Round(time.Second).String()
+		case "pending", "cancelled":
+			// no duration column
+		default:
+			durStr = s.Duration.Round(time.Millisecond).String()
+		}
+		if w := len(durStr); w > maxDurW {
+			maxDurW = w
 		}
 	}
 
-	b.WriteString(fmt.Sprintf("\n  %s\n", StyleMuted.Render(fmt.Sprintf("%d/%d complete", done, total))))
+	done := 0
+	for _, id := range m.ToolIDs {
+		s := m.Statuses[id]
+		pid := padToolID(id, m.maxIDWidth)
+
+		switch s.Status {
+		case "pending":
+			b.WriteString(fmt.Sprintf("  %s %s %s\n",
+				IconPending, pid, padStatus(StyleMuted.Render("waiting"), "waiting")))
+		case "running":
+			durStr := time.Since(s.Started).Round(time.Second).String()
+			dur := StyleMuted.Render(fmt.Sprintf("%-*s", maxDurW, durStr))
+			b.WriteString(fmt.Sprintf("  %s %s %s %s\n",
+				m.Spinner.View(), pid, padStatus(StylePrimary.Render("running"), "running"), dur))
+		case "success":
+			done++
+			durStr := fmt.Sprintf("%-*s", maxDurW, s.Duration.Round(time.Millisecond).String())
+			dur := StyleMuted.Render(durStr)
+			words := StyleMuted.Render(fmt.Sprintf("%d words", s.Words))
+			b.WriteString(fmt.Sprintf("  %s %s %s %s  %s\n",
+				IconSuccess, pid, padStatus(StyleSuccess.Render("done"), "done"), dur, words))
+		case "failed":
+			done++
+			durStr := fmt.Sprintf("%-*s", maxDurW, s.Duration.Round(time.Millisecond).String())
+			dur := StyleMuted.Render(durStr)
+			b.WriteString(fmt.Sprintf("  %s %s %s %s\n",
+				IconError, pid, padStatus(StyleError.Render("failed"), "failed"), dur))
+		case "timeout":
+			done++
+			durStr := fmt.Sprintf("%-*s", maxDurW, s.Duration.Round(time.Millisecond).String())
+			dur := StyleMuted.Render(durStr)
+			b.WriteString(fmt.Sprintf("  %s %s %s %s\n",
+				StyleWarning.Render("⏱"), pid, padStatus(StyleWarning.Render("timeout"), "timeout"), dur))
+		case "cancelled":
+			done++
+			b.WriteString(fmt.Sprintf("  %s %s %s\n",
+				StyleMuted.Render("−"), pid, padStatus(StyleMuted.Render("cancelled"), "cancelled")))
+		}
+	}
+
+	b.WriteString(fmt.Sprintf("\n  %s\n",
+		StyleMuted.Render(fmt.Sprintf("%d/%d complete", done, len(m.ToolIDs)))))
 
 	return b.String()
 }

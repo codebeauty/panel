@@ -29,6 +29,7 @@ var (
 	StylePrimary = lipgloss.NewStyle().Foreground(ColorPrimary)
 	StyleMuted   = lipgloss.NewStyle().Foreground(ColorMuted)
 	StyleBold    = lipgloss.NewStyle().Bold(true)
+	StyleTitle   = lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary)
 )
 
 // Status icons — colored Unicode symbols.

@@ -6,7 +6,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type SelectModel struct {
@@ -68,7 +67,7 @@ func (m SelectModel) Update(msg tea.Msg) (SelectModel, tea.Cmd) {
 func (m SelectModel) View() string {
 	var b strings.Builder
 
-	title := lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render("Select Tools")
+	title := StyleTitle.Render("Select Tools")
 	b.WriteString(fmt.Sprintf("  %s\n\n", title))
 
 	for i, id := range m.items {
@@ -103,7 +102,7 @@ func (m SelectModel) View() string {
 	}
 
 	b.WriteString(fmt.Sprintf("\n  %s selected", StyleMuted.Render(fmt.Sprintf("%d/%d", count, len(m.items)))))
-	b.WriteString(fmt.Sprintf("  %s\n", StyleMuted.Render("space:toggle  a:all  n:none  enter:confirm  q:quit")))
+	b.WriteString(fmt.Sprintf("  %s\n", StyleMuted.Render("space:toggle  a:all  n:none  enter:confirm  ctrl+c:quit")))
 
 	return b.String()
 }

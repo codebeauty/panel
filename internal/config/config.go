@@ -55,11 +55,20 @@ func NewDefaults() *Config {
 	}
 }
 
-var validToolName = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+var validName = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 
+// ValidateName checks that a name contains only allowed characters.
+func ValidateName(name string) error {
+	if !validName.MatchString(name) {
+		return fmt.Errorf("%q must match [a-zA-Z0-9._-]+", name)
+	}
+	return nil
+}
+
+// ValidateToolName validates a tool name.
 func ValidateToolName(name string) error {
-	if !validToolName.MatchString(name) {
-		return fmt.Errorf("invalid tool name %q: must match [a-zA-Z0-9._-]+", name)
+	if err := ValidateName(name); err != nil {
+		return fmt.Errorf("invalid tool name: %w", err)
 	}
 	return nil
 }

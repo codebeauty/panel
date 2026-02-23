@@ -28,8 +28,6 @@ func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadO
 		}
 	}
 
-	// Determine if we should skip phases
-	skipSelect := preSelected // tools were pre-resolved via --tools/--group
 	skipExpert := expertFlag != "" || teamFlag != ""
 
 	// Load available experts
@@ -54,14 +52,14 @@ func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadO
 		ExpertIDs:  expertIDs,
 		BuiltinSet: builtinSet,
 		Prompt:     prompt,
-		SkipSelect: skipSelect,
+		SkipSelect: preSelected,
 		SkipExpert: skipExpert,
 		PreExpert:  expertFlag,
 	}
 
 	var program *tea.Program
 
-	dispatch := func(ctx context.Context, selectedToolIDs []string, selectedExpert string, _ *tea.Program) {
+	dispatch := func(ctx context.Context, selectedToolIDs []string, selectedExpert string) {
 		err := executeTUIRun(ctx, program, cfg, prompt, selectedToolIDs, ro, selectedExpert, teamFlag)
 		if err != nil {
 			program.Send(tui.ErrorMsg{Err: err})
@@ -76,22 +74,15 @@ func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadO
 		return fmt.Errorf("TUI error: %w", err)
 	}
 
-	// Check if the final model has an error
-	if m, ok := finalModel.(tui.Model); ok {
-		if m.Err != nil {
-			return m.Err
-		}
+	if m, ok := finalModel.(tui.Model); ok && m.Err != nil {
+		return m.Err
 	}
-
 	return nil
 }
 
 // executeTUIRun handles the actual tool dispatch, sending progress messages to BubbleTea.
+// Tool expansion (duplicates or team cross-product) is done in run.go before calling runTUI.
 func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config, prompt string, toolIDs []string, ro config.ReadOnlyMode, expertFlag string, teamFlag string) error {
-	if teamFlag == "" {
-		toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
-	}
-
 	tools, err := buildTools(cfg, toolIDs)
 	if err != nil {
 		return err
@@ -122,21 +113,11 @@ func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config
 	})
 
 	// Resolve experts
-	var expertIDs []string
-	var expertContents []string
-	if teamFlag != "" {
-		expertIDs, expertContents, err = resolveTeamExperts(toolIDs, expert.Dir())
-		if err != nil {
-			return err
-		}
-	} else {
-		expertIDs, expertContents, err = resolveToolExperts(tools, cfg, expertFlag)
-		if err != nil {
-			return err
-		}
+	expertIDs, expertContents, err := resolveExperts(tools, toolIDs, cfg, expertFlag, teamFlag)
+	if err != nil {
+		return err
 	}
 
-	// Build per-tool params
 	baseParams := adapter.RunParams{
 		Prompt:     prompt,
 		PromptFile: promptFilePath,
@@ -145,52 +126,19 @@ func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config
 		Timeout:    time.Duration(cfg.Defaults.Timeout) * time.Second,
 	}
 
-	hasExpert := false
-	for _, c := range expertContents {
-		if c != "" {
-			hasExpert = true
-			break
-		}
+	perToolParams, err := buildExpertParams(tools, expertContents, baseParams, prompt, runDir)
+	if err != nil {
+		return err
 	}
 
 	var results []runner.Result
-	if !hasExpert {
+	if perToolParams == nil {
 		results = r.Run(ctx, tools, baseParams, runDir)
 	} else {
-		perToolParams := make([]adapter.RunParams, len(tools))
-		for i, tool := range tools {
-			p := baseParams
-			if expertContents[i] != "" {
-				p.Prompt = expert.Inject(expertContents[i], prompt)
-				toolPromptPath := filepath.Join(runDir, tool.ID+".prompt.md")
-				if err := os.WriteFile(toolPromptPath, []byte(p.Prompt), 0o600); err != nil {
-					return fmt.Errorf("writing expert prompt for %s: %w", tool.ID, err)
-				}
-				p.PromptFile = toolPromptPath
-			}
-			perToolParams[i] = p
-		}
 		results = r.RunWithParams(ctx, tools, perToolParams, runDir)
 	}
 
-	// Write manifest and summary
-	manifest := output.BuildManifest(prompt, startedAt, results, output.ManifestConfig{
-		ReadOnly:    string(ro),
-		Timeout:     cfg.Defaults.Timeout,
-		MaxParallel: cfg.Defaults.MaxParallel,
-	})
-	for i, eid := range expertIDs {
-		if eid != "" && i < len(manifest.Results) {
-			manifest.Results[i].Expert = eid
-		}
-	}
-	if err := output.WriteManifest(runDir, manifest); err != nil {
-		fmt.Fprintf(os.Stderr, "warning: failed to write manifest: %v\n", err)
-	}
-	summary := output.BuildSummary(manifest, runDir)
-	if err := output.WriteSummary(runDir, summary); err != nil {
-		fmt.Fprintf(os.Stderr, "warning: failed to write summary: %v\n", err)
-	}
+	writeManifestAndSummary(runDir, prompt, startedAt, results, expertIDs, cfg, ro)
 
 	program.Send(tui.AllCompletedMsg{
 		Results: results,
@@ -236,5 +184,6 @@ func resolveToolIDsForTUI(cfg *config.Config, toolsFlag, groupFlag string) (ids 
 			allIDs = append(allIDs, id)
 		}
 	}
+	sortToolIDsByAdapter(allIDs, cfg)
 	return allIDs, false, nil
 }

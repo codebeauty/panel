@@ -77,7 +77,7 @@ func newTeamsCreateCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
-			if err := config.ValidateToolName(name); err != nil {
+			if err := config.ValidateName(name); err != nil {
 				return fmt.Errorf("invalid team name: %w", err)
 			}
 
@@ -107,11 +107,22 @@ func newTeamsCreateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			// Warn about name collisions
+			if _, ok := cfg.Groups[name]; ok {
+				fmt.Fprintf(os.Stderr, "Warning: %q also exists as a group name\n", name)
+			}
+
+			verb := "Created"
+			if _, ok := cfg.Teams[name]; ok {
+				verb = "Updated"
+			}
+
 			cfg.Teams[name] = expertIDs
 			if err := config.Save(cfg, config.GlobalConfigPath()); err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "Created team %q: %s\n", name, strings.Join(expertIDs, ", "))
+			fmt.Fprintf(os.Stderr, "%s team %q: %s\n", verb, name, strings.Join(expertIDs, ", "))
 			return nil
 		},
 	}

@@ -9,9 +9,11 @@ import (
 )
 
 // expandTeamCrossProduct builds tool×expert composite IDs.
-// Deduplicates tool IDs. Registers composite entries in cfg.Tools
-// so buildTools can find them.
-func expandTeamCrossProduct(toolIDs []string, teamExperts []string, cfg *config.Config) []string {
+// Deduplicates tool IDs. Mutates cfg.Tools by registering composite entries
+// (e.g., "claude@security") so buildTools can resolve them later.
+// Composite IDs intentionally use "@" which is outside ValidateToolName's
+// charset — these are runtime-generated, not user-created tool names.
+func expandTeamCrossProduct(toolIDs []string, teamExperts []string, cfg *config.Config) ([]string, error) {
 	seen := make(map[string]bool)
 	var deduped []string
 	for _, id := range toolIDs {
@@ -23,14 +25,17 @@ func expandTeamCrossProduct(toolIDs []string, teamExperts []string, cfg *config.
 
 	var crossIDs []string
 	for _, toolID := range deduped {
-		baseTool := cfg.Tools[toolID]
+		baseTool, ok := cfg.Tools[toolID]
+		if !ok {
+			return nil, fmt.Errorf("unknown tool %q in team expansion", toolID)
+		}
 		for _, expertID := range teamExperts {
 			compositeID := fmt.Sprintf("%s@%s", toolID, expertID)
 			cfg.Tools[compositeID] = baseTool
 			crossIDs = append(crossIDs, compositeID)
 		}
 	}
-	return crossIDs
+	return crossIDs, nil
 }
 
 // resolveTeamExperts extracts expert IDs from composite tool IDs (tool@expert)

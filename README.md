@@ -43,6 +43,7 @@ panel run "review this authentication flow for security issues"
 | `panel init` | Auto-discover installed AI CLIs and write config |
 | `panel tools` | Manage configured tools (list, remove, test, discover, rename, add) |
 | `panel groups` | Manage named groups of tools |
+| `panel teams` | Manage expert teams (list, create, delete) |
 | `panel config` | Show resolved configuration |
 | `panel doctor` | Check configuration and tool availability |
 | `panel experts` | Manage experts (list, show, create, edit, reset) |
@@ -87,7 +88,11 @@ Flags:
       --dry-run            Show invocations without executing
   -c, --context <paths>    Gather context (comma-separated paths, or "." for git diff)
   -E, --expert <id>        Expert to apply to all tools (overrides per-tool config)
+  -T, --team <name>        Named team of experts (cross-product dispatch)
+      --yes                Skip confirmation prompts
 ```
+
+`--team` and `--expert` are mutually exclusive.
 
 When running interactively with multiple tools and no `--tools`/`--group` flag, panel shows a numbered list for selection.
 
@@ -175,6 +180,7 @@ panel experts show security     # Print expert contents
 panel experts create my-expert  # Create custom expert (opens $EDITOR)
 panel experts edit security     # Edit existing expert (opens $EDITOR)
 panel experts reset             # Re-sync built-in presets
+panel experts delete <id>    # Delete an expert (--force to ignore team refs)
 ```
 
 Panel ships 6 built-in experts:
@@ -257,6 +263,28 @@ In this setup, `panel run "review this code"` sends the prompt to all three tool
 
 When an expert is active, the prompt is prepended with the expert's role instructions. Each tool gets its own prompt file (`<tool-id>.prompt.md`) in the output directory. The original `prompt.md` is always preserved without expert modifications.
 
+### `panel teams`
+
+Manage named teams of experts. A team is a reusable list of expert IDs. When used with `--team`, panel creates a cross-product: each tool runs once per expert in the team.
+
+```bash
+panel teams list                                     # List all teams
+panel teams create code-review --experts security,architect,reviewer
+panel teams delete code-review
+```
+
+#### Using teams
+
+```bash
+# Run with a team — creates tool × expert cross-product
+panel run -T code-review "review this module"
+
+# Combine with tool selection (2 tools × 3 experts = 6 runs)
+panel run -t claude-opus,gemini-3-pro -T code-review "review this code"
+```
+
+Each tool runs independently with each expert. The composite IDs use `@` as separator (e.g., `claude-opus@security`, `gemini-3-pro@architect`). When the cross-product exceeds 8 runs, panel prompts for confirmation (skip with `--yes`).
+
 ### `panel skill`
 
 Print a 7-phase slash-command template for AI agent integration.
@@ -286,6 +314,9 @@ Project overrides: `.panel.json` in the project root (merges with global; read-o
   },
   "groups": {
     "smart": ["claude-opus", "gemini-3-pro"]
+  },
+  "teams": {
+    "code-review": ["security", "architect", "reviewer"]
   }
 }
 ```
@@ -317,8 +348,14 @@ agents/panel/
     ├── claude-opus.stderr     # Claude's stderr
     ├── claude-opus.prompt.md  # Per-tool prompt with expert (if expert used)
     ├── gemini-3-pro.md        # Gemini's response
-    └── gemini-3-pro.stderr    # Gemini's stderr
+    ├── gemini-3-pro.stderr    # Gemini's stderr
+    ├── claude-opus@security.md         # Team run: Claude as security expert
+    ├── claude-opus@security.prompt.md  # Per-tool prompt with expert
+    ├── gemini-3-pro@architect.md       # Team run: Gemini as architect
+    └── gemini-3-pro@architect.stderr
 ```
+
+When using `--team`, output files use composite IDs (`tool@expert`).
 
 Use `panel summary latest` to quickly view the most recent result, or `--json` on `panel run` to get the manifest on stdout for programmatic consumption.
 

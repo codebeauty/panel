@@ -14,14 +14,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
 	"github.com/codebeauty/panel/internal/adapter"
 	"github.com/codebeauty/panel/internal/config"
+	"github.com/codebeauty/panel/internal/expert"
 	"github.com/codebeauty/panel/internal/gather"
 	"github.com/codebeauty/panel/internal/output"
-	"github.com/codebeauty/panel/internal/expert"
 	"github.com/codebeauty/panel/internal/runner"
 	"github.com/codebeauty/panel/internal/tui"
 	"github.com/codebeauty/panel/internal/ui"
@@ -100,14 +101,14 @@ func newRunCmd() *cobra.Command {
 					return fmt.Errorf("no tools configured — run 'panel init' to set up tools")
 				}
 				if teamFlag != "" {
-					teamExperts, ok := cfg.Teams[teamFlag]
-					if !ok {
-						return fmt.Errorf("unknown team: %q", teamFlag)
+					teamExperts, err := lookupTeam(cfg, teamFlag)
+					if err != nil {
+						return err
 					}
-					if len(teamExperts) == 0 {
-						return fmt.Errorf("team %q has no experts", teamFlag)
+					toolIDs, err = expandTeamCrossProduct(toolIDs, teamExperts, cfg)
+					if err != nil {
+						return err
 					}
-					toolIDs = expandTeamCrossProduct(toolIDs, teamExperts, cfg)
 					preSelected = true // skip TUI tool selection, team defines the set
 				} else {
 					toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
@@ -133,14 +134,14 @@ func newRunCmd() *cobra.Command {
 			}
 
 			if teamFlag != "" {
-				teamExperts, ok := cfg.Teams[teamFlag]
-				if !ok {
-					return fmt.Errorf("unknown team: %q", teamFlag)
+				teamExperts, err := lookupTeam(cfg, teamFlag)
+				if err != nil {
+					return err
 				}
-				if len(teamExperts) == 0 {
-					return fmt.Errorf("team %q has no experts", teamFlag)
+				toolIDs, err = expandTeamCrossProduct(toolIDs, teamExperts, cfg)
+				if err != nil {
+					return err
 				}
-				toolIDs = expandTeamCrossProduct(toolIDs, teamExperts, cfg)
 
 				// Confirmation prompt for large cross-products
 				if len(toolIDs) > 8 && !yesFlag &&
@@ -230,21 +231,11 @@ func newRunCmd() *cobra.Command {
 			defer prog.Stop()
 
 			// Resolve experts
-			var expertIDs []string
-			var expertContents []string
-			if teamFlag != "" {
-				expertIDs, expertContents, err = resolveTeamExperts(toolIDs, expert.Dir())
-				if err != nil {
-					return err
-				}
-			} else {
-				expertIDs, expertContents, err = resolveToolExperts(tools, cfg, expertFlag)
-				if err != nil {
-					return err
-				}
+			expertIDs, expertContents, err := resolveExperts(tools, toolIDs, cfg, expertFlag, teamFlag)
+			if err != nil {
+				return err
 			}
 
-			// Build per-tool params
 			baseParams := adapter.RunParams{
 				Prompt:     prompt,
 				PromptFile: promptFilePath,
@@ -253,54 +244,19 @@ func newRunCmd() *cobra.Command {
 				Timeout:    time.Duration(cfg.Defaults.Timeout) * time.Second,
 			}
 
-			hasExpert := false
-			for _, c := range expertContents {
-				if c != "" {
-					hasExpert = true
-					break
-				}
+			perToolParams, err := buildExpertParams(tools, expertContents, baseParams, prompt, runDir)
+			if err != nil {
+				return err
 			}
 
 			var results []runner.Result
-			if !hasExpert {
+			if perToolParams == nil {
 				results = r.Run(ctx, tools, baseParams, runDir)
 			} else {
-				perToolParams := make([]adapter.RunParams, len(tools))
-				for i, tool := range tools {
-					p := baseParams
-					if expertContents[i] != "" {
-						p.Prompt = expert.Inject(expertContents[i], prompt)
-						toolPromptPath := filepath.Join(runDir, tool.ID+".prompt.md")
-						if err := os.WriteFile(toolPromptPath, []byte(p.Prompt), 0o600); err != nil {
-							return fmt.Errorf("writing expert prompt for %s: %w", tool.ID, err)
-						}
-						p.PromptFile = toolPromptPath
-					}
-					perToolParams[i] = p
-				}
 				results = r.RunWithParams(ctx, tools, perToolParams, runDir)
 			}
 
-			manifest := output.BuildManifest(prompt, startedAt, results, output.ManifestConfig{
-				ReadOnly:    string(ro),
-				Timeout:     cfg.Defaults.Timeout,
-				MaxParallel: cfg.Defaults.MaxParallel,
-			})
-
-			// Record experts in manifest
-			for i, eid := range expertIDs {
-				if eid != "" && i < len(manifest.Results) {
-					manifest.Results[i].Expert = eid
-				}
-			}
-			if err := output.WriteManifest(runDir, manifest); err != nil {
-				fmt.Fprintf(os.Stderr, "warning: failed to write manifest: %v\n", err)
-			}
-
-			summary := output.BuildSummary(manifest, runDir)
-			if err := output.WriteSummary(runDir, summary); err != nil {
-				fmt.Fprintf(os.Stderr, "warning: failed to write summary: %v\n", err)
-			}
+			manifest := writeManifestAndSummary(runDir, prompt, startedAt, results, expertIDs, cfg, ro)
 
 			if jsonOutput {
 				enc := json.NewEncoder(os.Stdout)
@@ -376,8 +332,20 @@ func resolveTools(cfg *config.Config, toolsFlag, groupFlag string) ([]string, er
 			ids = append(ids, id)
 		}
 	}
-	sort.Strings(ids)
+	sortToolIDsByAdapter(ids, cfg)
 	return ids, nil
+}
+
+// sortToolIDsByAdapter sorts tool IDs by adapter name, then by tool ID within each adapter.
+func sortToolIDsByAdapter(ids []string, cfg *config.Config) {
+	sort.Slice(ids, func(i, j int) bool {
+		ai := cfg.Tools[ids[i]].Adapter
+		aj := cfg.Tools[ids[j]].Adapter
+		if ai != aj {
+			return ai < aj
+		}
+		return ids[i] < ids[j]
+	})
 }
 
 func buildTools(cfg *config.Config, toolIDs []string) ([]runner.Tool, error) {
@@ -412,6 +380,18 @@ func buildTools(cfg *config.Config, toolIDs []string) ([]runner.Tool, error) {
 		tools = append(tools, runner.Tool{ID: id, Adapter: a})
 	}
 	return tools, nil
+}
+
+// lookupTeam returns the expert list for a team, or an error if not found or empty.
+func lookupTeam(cfg *config.Config, teamName string) ([]string, error) {
+	experts, ok := cfg.Teams[teamName]
+	if !ok {
+		return nil, fmt.Errorf("unknown team: %q", teamName)
+	}
+	if len(experts) == 0 {
+		return nil, fmt.Errorf("team %q has no experts", teamName)
+	}
+	return experts, nil
 }
 
 func mustGetwd() string {
@@ -469,17 +449,38 @@ func selectToolsInteractive(toolIDs []string) ([]string, error) {
 
 func printRichSummary(results []runner.Result, runDir string) {
 	fmt.Fprintf(os.Stderr, "\n%s\n", tui.StyleBold.Render("--- Results ---"))
+	maxW := 0
+	for _, r := range results {
+		if w := lipgloss.Width(tui.FormatToolID(r.ToolID)); w > maxW {
+			maxW = w
+		}
+	}
 	for _, r := range results {
 		icon := tui.StatusIcon(string(r.Status))
-		fmt.Fprintf(os.Stderr, " %s %-20s %s %s %s\n",
-			icon, r.ToolID, r.Status, tui.StyleMuted.Render(fmt.Sprintf("(exit %d)", r.ExitCode)),
+		display := tui.FormatToolID(r.ToolID)
+		pad := max(0, maxW-lipgloss.Width(display))
+		fmt.Fprintf(os.Stderr, " %s %s%s %s %s %s\n",
+			icon, display, strings.Repeat(" ", pad), r.Status,
+			tui.StyleMuted.Render(fmt.Sprintf("(exit %d)", r.ExitCode)),
 			tui.StyleMuted.Render(r.Duration.Round(time.Millisecond).String()))
+		if r.Status != runner.StatusSuccess {
+			if snippet := stderrSnippet(r.Stderr); snippet != "" {
+				fmt.Fprintf(os.Stderr, "   %s\n", tui.StyleMuted.Render(snippet))
+			}
+		}
 	}
 	fmt.Fprintf(os.Stderr, "\n%s %s\n", tui.StyleBold.Render("Output:"), runDir)
 }
 
 func printSummary(results []runner.Result, runDir string) {
 	fmt.Fprintf(os.Stderr, "\n--- Results ---\n")
+	maxLen := 0
+	for _, r := range results {
+		if len(r.ToolID) > maxLen {
+			maxLen = len(r.ToolID)
+		}
+	}
+	fmtStr := fmt.Sprintf(" %%s %%-%ds %%s (exit %%d) %%s\n", maxLen)
 	for _, r := range results {
 		var icon string
 		switch r.Status {
@@ -494,10 +495,30 @@ func printSummary(results []runner.Result, runDir string) {
 		default:
 			icon = "?"
 		}
-		fmt.Fprintf(os.Stderr, " %s %-20s %s (exit %d) %s\n",
+		fmt.Fprintf(os.Stderr, fmtStr,
 			icon, r.ToolID, r.Status, r.ExitCode, r.Duration.Round(time.Millisecond))
+		if r.Status != runner.StatusSuccess {
+			if snippet := stderrSnippet(r.Stderr); snippet != "" {
+				fmt.Fprintf(os.Stderr, "   %s\n", snippet)
+			}
+		}
 	}
 	fmt.Fprintf(os.Stderr, "\nOutput: %s\n", runDir)
+}
+
+// stderrSnippet returns the first line of stderr (trimmed, max 120 chars) for inline display.
+func stderrSnippet(stderr []byte) string {
+	s := strings.TrimSpace(string(stderr))
+	if s == "" {
+		return ""
+	}
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		s = s[:i]
+	}
+	if len(s) > 120 {
+		s = s[:120] + "..."
+	}
+	return s
 }
 
 // resolveToolExperts resolves expert content for each tool.
@@ -525,4 +546,64 @@ func resolveToolExperts(tools []runner.Tool, cfg *config.Config, expertFlag stri
 		contents[i] = content
 	}
 	return ids, contents, nil
+}
+
+// resolveExperts dispatches to resolveTeamExperts or resolveToolExperts based on teamFlag.
+func resolveExperts(tools []runner.Tool, toolIDs []string, cfg *config.Config, expertFlag, teamFlag string) (ids []string, contents []string, err error) {
+	if teamFlag != "" {
+		return resolveTeamExperts(toolIDs, expert.Dir())
+	}
+	return resolveToolExperts(tools, cfg, expertFlag)
+}
+
+// buildExpertParams creates per-tool RunParams with expert content injected into prompts.
+// Returns nil if no expert content exists (caller should use baseParams for all tools).
+func buildExpertParams(tools []runner.Tool, expertContents []string, baseParams adapter.RunParams, prompt, runDir string) ([]adapter.RunParams, error) {
+	hasExpert := false
+	for _, c := range expertContents {
+		if c != "" {
+			hasExpert = true
+			break
+		}
+	}
+	if !hasExpert {
+		return nil, nil
+	}
+
+	params := make([]adapter.RunParams, len(tools))
+	for i, tool := range tools {
+		p := baseParams
+		if expertContents[i] != "" {
+			p.Prompt = expert.Inject(expertContents[i], prompt)
+			toolPromptPath := filepath.Join(runDir, tool.ID+".prompt.md")
+			if err := os.WriteFile(toolPromptPath, []byte(p.Prompt), 0o600); err != nil {
+				return nil, fmt.Errorf("writing expert prompt for %s: %w", tool.ID, err)
+			}
+			p.PromptFile = toolPromptPath
+		}
+		params[i] = p
+	}
+	return params, nil
+}
+
+// writeManifestAndSummary writes the run manifest and summary to the run directory.
+func writeManifestAndSummary(runDir, prompt string, startedAt time.Time, results []runner.Result, expertIDs []string, cfg *config.Config, ro config.ReadOnlyMode) *output.Manifest {
+	manifest := output.BuildManifest(prompt, startedAt, results, output.ManifestConfig{
+		ReadOnly:    string(ro),
+		Timeout:     cfg.Defaults.Timeout,
+		MaxParallel: cfg.Defaults.MaxParallel,
+	})
+	for i, eid := range expertIDs {
+		if eid != "" && i < len(manifest.Results) {
+			manifest.Results[i].Expert = eid
+		}
+	}
+	if err := output.WriteManifest(runDir, manifest); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: failed to write manifest: %v\n", err)
+	}
+	summary := output.BuildSummary(manifest, runDir)
+	if err := output.WriteSummary(runDir, summary); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: failed to write summary: %v\n", err)
+	}
+	return manifest
 }

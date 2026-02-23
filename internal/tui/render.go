@@ -103,6 +103,15 @@ func (t Table) Render() string {
 	return b.String()
 }
 
+// FormatToolID formats a tool ID for display.
+// Composite IDs (tool@expert) are rendered as "tool (expert)" with muted expert.
+func FormatToolID(id string) string {
+	if i := strings.Index(id, "@"); i >= 0 {
+		return id[:i] + " " + StyleMuted.Render("("+id[i+1:]+")")
+	}
+	return id
+}
+
 // Separator renders a styled date/time separator line.
 func Separator(text string) string {
 	line := StyleMuted.Render("───")

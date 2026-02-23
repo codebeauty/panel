@@ -71,6 +71,22 @@ func BuildSummary(manifest *Manifest, runDir string) string {
 			} else {
 				fmt.Fprintf(&b, "- Error: %s\n", r.Status)
 			}
+
+			// Include stderr snippet for failed tools
+			if r.StderrFile != "" {
+				stderrPath := filepath.Join(runDir, r.StderrFile)
+				if raw, err := os.ReadFile(stderrPath); err == nil {
+					snippet := strings.TrimSpace(string(raw))
+					if snippet != "" {
+						const maxStderr = 500
+						if len(snippet) > maxStderr {
+							snippet = snippet[:maxStderr] + "..."
+						}
+						fmt.Fprintf(&b, "- Stderr:\n  ```\n  %s\n  ```\n",
+							strings.ReplaceAll(snippet, "\n", "\n  "))
+					}
+				}
+			}
 		}
 	}
 

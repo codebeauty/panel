@@ -152,8 +152,13 @@ Some body text with enough words to count.
 		assert.Contains(t, summary, "| claude-opus | 1234 | 567 | $0.05 |")
 	})
 
-	t.Run("failed result", func(t *testing.T) {
+	t.Run("failed result with stderr", func(t *testing.T) {
 		dir := t.TempDir()
+
+		// Write stderr file so summary can include it
+		err := os.WriteFile(filepath.Join(dir, "gemini-pro.stderr"),
+			[]byte("Error: API key not configured\nRun `gemini auth` to set up credentials"), 0o600)
+		assert.NoError(t, err)
 
 		manifest := &Manifest{
 			Version:     1,
@@ -182,7 +187,35 @@ Some body text with enough words to count.
 		assert.Contains(t, summary, "- Status: failed")
 		assert.Contains(t, summary, "- Exit code: 1")
 		assert.Contains(t, summary, "- Error: exit code 1")
+		assert.Contains(t, summary, "- Stderr:")
+		assert.Contains(t, summary, "API key not configured")
 		assert.NotContains(t, summary, "## Cost Summary")
+	})
+
+	t.Run("failed result without stderr file", func(t *testing.T) {
+		dir := t.TempDir()
+
+		manifest := &Manifest{
+			Version:  1,
+			Prompt:   "Test prompt",
+			Duration: "15s",
+			Config:   ManifestConfig{ReadOnly: "strict"},
+			Results: []ManifestResult{
+				{
+					ToolID:     "gemini-pro",
+					Status:     "failed",
+					Duration:   "15.2s",
+					ExitCode:   1,
+					OutputFile: "gemini-pro.md",
+					StderrFile: "gemini-pro.stderr",
+				},
+			},
+		}
+
+		summary := BuildSummary(manifest, dir)
+
+		assert.Contains(t, summary, "- Error: exit code 1")
+		assert.NotContains(t, summary, "- Stderr:")
 	})
 
 	t.Run("prompt truncation", func(t *testing.T) {

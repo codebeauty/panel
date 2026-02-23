@@ -14,7 +14,8 @@ func TestExpandTeamCrossProduct(t *testing.T) {
 	cfg.Tools["claude"] = config.ToolConfig{Binary: "claude", Adapter: "claude", Enabled: true}
 	cfg.Tools["gemini"] = config.ToolConfig{Binary: "gemini", Adapter: "gemini", Enabled: true}
 
-	result := expandTeamCrossProduct([]string{"claude", "gemini"}, []string{"security", "architect"}, cfg)
+	result, err := expandTeamCrossProduct([]string{"claude", "gemini"}, []string{"security", "architect"}, cfg)
+	assert.NoError(t, err)
 
 	assert.Equal(t, []string{
 		"claude@security", "claude@architect",
@@ -32,7 +33,8 @@ func TestExpandTeamDeduplicatesTools(t *testing.T) {
 	cfg := config.NewDefaults()
 	cfg.Tools["claude"] = config.ToolConfig{Binary: "claude", Adapter: "claude", Enabled: true}
 
-	result := expandTeamCrossProduct([]string{"claude", "claude"}, []string{"security"}, cfg)
+	result, err := expandTeamCrossProduct([]string{"claude", "claude"}, []string{"security"}, cfg)
+	assert.NoError(t, err)
 
 	assert.Equal(t, []string{"claude@security"}, result)
 }
@@ -41,7 +43,8 @@ func TestExpandTeamEmptyExperts(t *testing.T) {
 	cfg := config.NewDefaults()
 	cfg.Tools["claude"] = config.ToolConfig{Binary: "claude", Adapter: "claude", Enabled: true}
 
-	result := expandTeamCrossProduct([]string{"claude"}, []string{}, cfg)
+	result, err := expandTeamCrossProduct([]string{"claude"}, []string{}, cfg)
+	assert.NoError(t, err)
 
 	assert.Empty(t, result)
 }
@@ -50,9 +53,19 @@ func TestExpandTeamSingleToolSingleExpert(t *testing.T) {
 	cfg := config.NewDefaults()
 	cfg.Tools["claude"] = config.ToolConfig{Binary: "claude", Adapter: "claude", Enabled: true}
 
-	result := expandTeamCrossProduct([]string{"claude"}, []string{"security"}, cfg)
+	result, err := expandTeamCrossProduct([]string{"claude"}, []string{"security"}, cfg)
+	assert.NoError(t, err)
 
 	assert.Equal(t, []string{"claude@security"}, result)
+}
+
+func TestExpandTeamUnknownTool(t *testing.T) {
+	cfg := config.NewDefaults()
+
+	_, err := expandTeamCrossProduct([]string{"nonexistent"}, []string{"security"}, cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown tool")
+	assert.Contains(t, err.Error(), "nonexistent")
 }
 
 func TestResolveTeamExperts(t *testing.T) {

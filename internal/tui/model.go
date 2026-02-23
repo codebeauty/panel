@@ -23,8 +23,8 @@ type RunConfig struct {
 }
 
 // DispatchFunc is called when the user confirms. It runs the tools and sends
-// messages back via the tea.Program.
-type DispatchFunc func(ctx context.Context, toolIDs []string, expert string, program *tea.Program)
+// messages back via the tea.Program (captured in the closure, not passed here).
+type DispatchFunc func(ctx context.Context, toolIDs []string, expert string)
 
 // Model is the top-level BubbleTea model for `panel run`.
 type Model struct {
@@ -58,26 +58,21 @@ func NewModel(cfg RunConfig, dispatch DispatchFunc) Model {
 		dispatch: dispatch,
 	}
 
-	if cfg.SkipSelect {
+	switch {
+	case cfg.SkipSelect && cfg.SkipExpert:
 		m.selectedTools = cfg.AllToolIDs
-		if cfg.SkipExpert {
-			m.selectedExpert = cfg.PreExpert
-			// Skip directly to progress for single tool with no expert, else confirm
-			if len(cfg.AllToolIDs) == 1 && cfg.PreExpert == "" {
-				m.phase = PhaseProgress
-				m.progressModel = NewProgressModel(cfg.AllToolIDs)
-			} else {
-				m.phase = PhaseConfirm
-				m.confirmModel = ConfirmModel{
-					ToolIDs: cfg.AllToolIDs,
-					Expert:  cfg.PreExpert,
-					Prompt:  cfg.Prompt,
-				}
-			}
+		m.selectedExpert = cfg.PreExpert
+		// Skip directly to progress for single tool with no expert, else confirm
+		if len(cfg.AllToolIDs) == 1 && cfg.PreExpert == "" {
+			m.phase = PhaseProgress
+			m.progressModel = NewProgressModel(cfg.AllToolIDs)
 		} else {
-			m.phase = PhaseExpert
+			m.transitionToConfirm(false)
 		}
-	} else {
+	case cfg.SkipSelect:
+		m.selectedTools = cfg.AllToolIDs
+		m.phase = PhaseExpert
+	default:
 		m.phase = PhaseSelect
 	}
 
@@ -91,7 +86,10 @@ func NewModel(cfg RunConfig, dispatch DispatchFunc) Model {
 
 func (m Model) Init() tea.Cmd {
 	if m.phase == PhaseProgress {
-		return tea.Batch(m.startDispatch(), m.progressModel.Spinner.Tick)
+		return tea.Batch(
+			func() tea.Msg { return doDispatchMsg{} },
+			m.progressModel.Spinner.Tick,
+		)
 	}
 	return nil
 }
@@ -101,6 +99,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		if m.phase == PhaseSummary {
+			var cmd tea.Cmd
+			m.summaryModel, cmd = m.summaryModel.Update(msg)
+			return m, cmd
+		}
 		return m, nil
 
 	case tea.KeyMsg:
@@ -133,9 +136,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case AllCompletedMsg:
-		m.summaryModel = NewSummaryModel(msg.Results, msg.RunDir)
+		m.summaryModel = NewSummaryModel(msg.Results, msg.RunDir, m.width, m.height)
 		m.phase = PhaseSummary
 		return m, nil
+
+	case doDispatchMsg:
+		ctx, cancel := context.WithCancel(context.Background())
+		m.cancel = cancel
+		return m, m.startDispatch(ctx)
 
 	case spinner.TickMsg:
 		if m.phase == PhaseProgress {
@@ -193,12 +201,7 @@ func (m Model) updateSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if m.cfg.SkipExpert {
 				m.selectedExpert = m.cfg.PreExpert
-				m.confirmModel = ConfirmModel{
-					ToolIDs: m.selectedTools,
-					Expert:  m.selectedExpert,
-					Prompt:  m.cfg.Prompt,
-				}
-				m.phase = PhaseConfirm
+				m.transitionToConfirm(true)
 			} else {
 				m.phase = PhaseExpert
 			}
@@ -217,12 +220,7 @@ func (m Model) updateExpert(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, Keys.Confirm):
 			m.selectedExpert = m.expertModel.SelectedExpert()
-			m.confirmModel = ConfirmModel{
-				ToolIDs: m.selectedTools,
-				Expert:  m.selectedExpert,
-				Prompt:  m.cfg.Prompt,
-			}
-			m.phase = PhaseConfirm
+			m.transitionToConfirm(true)
 			return m, nil
 		case key.Matches(msg, Keys.Back):
 			if !m.cfg.SkipSelect {
@@ -244,7 +242,9 @@ func (m Model) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, Keys.Confirm):
 			m.progressModel = NewProgressModel(m.selectedTools)
 			m.phase = PhaseProgress
-			return m, tea.Batch(m.startDispatch(), m.progressModel.Spinner.Tick)
+			ctx, cancel := context.WithCancel(context.Background())
+			m.cancel = cancel
+			return m, tea.Batch(m.startDispatch(ctx), m.progressModel.Spinner.Tick)
 		case key.Matches(msg, Keys.Back):
 			if !m.cfg.SkipExpert {
 				m.phase = PhaseExpert
@@ -258,18 +258,36 @@ func (m Model) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateSummary(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Summary is view-only, q/ctrl+c already handled
-	return m, nil
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if key.Matches(msg, Keys.QuitSummary) {
+			m.quitting = true
+			return m, tea.Quit
+		}
+	}
+
+	var cmd tea.Cmd
+	m.summaryModel, cmd = m.summaryModel.Update(msg)
+	return m, cmd
 }
 
-func (m *Model) startDispatch() tea.Cmd {
+// transitionToConfirm sets up the confirm phase with the currently selected tools and expert.
+func (m *Model) transitionToConfirm(canGoBack bool) {
+	m.phase = PhaseConfirm
+	m.confirmModel = ConfirmModel{
+		ToolIDs:   m.selectedTools,
+		Expert:    m.selectedExpert,
+		Prompt:    m.cfg.Prompt,
+		CanGoBack: canGoBack,
+	}
+}
+
+func (m Model) startDispatch(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithCancel(context.Background())
-		m.cancel = cancel
-		// dispatch runs in a goroutine and sends messages via program.Send()
-		// It's called from Init or Confirm phase. The DispatchFunc is responsible
-		// for sending ToolStartedMsg, ToolCompletedMsg, and AllCompletedMsg.
-		go m.dispatch(ctx, m.selectedTools, m.selectedExpert, nil)
+		go func() {
+			defer func() { recover() }() // program.Send may panic after exit
+			m.dispatch(ctx, m.selectedTools, m.selectedExpert)
+		}()
 		return nil
 	}
 }

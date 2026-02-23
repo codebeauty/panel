@@ -14,6 +14,15 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="https://codebeauty.github.io/panel/og.png">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <script>
+    // Apply theme before first paint to prevent flash
+    (function() {
+      var s = localStorage.getItem('theme');
+      if (s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.bunny.net">
   <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,500|instrument-serif:400i" rel="stylesheet">
   <style>
@@ -35,7 +44,7 @@
       --gray-900: #171717;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; transition: background-color 0.6s, border-color 0.6s, color 0.6s, box-shadow 0.6s, fill 0.6s; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -79,7 +88,6 @@
       font-style: italic;
       font-size: 4rem;
       font-weight: 400;
-
       line-height: 1.2;
       color: var(--gray-900);
       max-width: 660px;
@@ -104,7 +112,7 @@
       align-items: center;
       gap: 12px;
       background: var(--gray-900);
-      color: #e5e5e5;
+      color: var(--gray-200);
       padding: 14px 24px;
       border-radius: var(--radius);
       font-family: "JetBrains Mono", monospace;
@@ -161,50 +169,60 @@
     }
 
     /* Code blocks */
-    pre {
-      background: var(--gray-900);
-      color: #e5e5e5;
+    pre, .tree {
+      background: white;
       padding: 20px 24px;
       border-radius: var(--radius);
       overflow-x: auto;
       font-family: "JetBrains Mono", monospace;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.03);
+      border: 1px solid var(--gray-200);
+    }
+
+    pre {
+      color: var(--gray-800);
       font-size: 0.875rem;
       line-height: 1.7;
       margin-bottom: 16px;
     }
 
-    pre .comment { color: var(--gray-500); }
-    pre .cmd { color: var(--green); }
-    pre .flag { color: var(--blue); }
-    pre .string { color: var(--red); }
+    pre .comment { color: var(--gray-400); }
+    pre .cmd { color: #16a34a; }
+    pre .flag { color: #2563eb; }
+    pre .string { color: #dc2626; }
 
-    /* Features */
+    /* Features — bento grid */
     .features {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
     }
 
     .feature {
-      padding: 24px;
+      padding: 28px;
       background: white;
       border-radius: var(--radius);
       border: 1px solid var(--gray-200);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
     }
 
+    .feature.span-2 { grid-column: span 2; }
+
     .feature-icon {
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       border-radius: calc(var(--radius) * 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.1rem;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .feature h3 {
-      font-size: 0.95rem;
+      font-size: 1rem;
       font-weight: 600;
       margin-bottom: 6px;
     }
@@ -214,6 +232,23 @@
       color: var(--gray-500);
       line-height: 1.5;
     }
+
+    .feature.span-full {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      align-items: center;
+      gap: 20px;
+      padding: 24px 32px;
+    }
+
+    .feature.span-full .feature-icon {
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+
+    .feature.span-full .feature-text h3,
+    .feature.span-full .feature-text p { margin: 0; }
+    .feature.span-full .feature-text h3 { margin-bottom: 2px; }
 
     /* Experts */
     .experts-intro {
@@ -225,7 +260,7 @@
 
     .experts {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 16px;
       margin-bottom: 24px;
     }
@@ -245,8 +280,8 @@
     }
 
     .expert-avatar .avatar-icon {
-      width: 44px;
-      height: 44px;
+      width: 100%;
+      height: 100%;
       color: var(--gray-300);
     }
 
@@ -289,15 +324,11 @@
       margin-left: 8px;
       vertical-align: middle;
       animation: badge-rock 3s ease-in-out infinite;
-      transform-origin: center center;
     }
 
     .beta-badge-bg {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
     }
 
     .beta-badge-text {
@@ -360,20 +391,15 @@
 
     /* Output structure */
     .tree {
-      background: var(--gray-900);
-      color: var(--gray-400);
-      padding: 20px 24px;
-      border-radius: var(--radius);
-      font-family: "JetBrains Mono", monospace;
+      color: var(--gray-500);
       font-size: 0.85rem;
       line-height: 1.8;
       white-space: pre;
-      overflow-x: auto;
     }
 
-    .tree .dir { color: var(--blue); }
-    .tree .file { color: #e5e5e5; }
-    .tree .desc { color: var(--gray-500); }
+    .tree .dir { color: #2563eb; }
+    .tree .file { color: var(--gray-800); }
+    .tree .desc { color: var(--gray-400); }
 
     /* Colored dots canvas */
     .dot-canvas {
@@ -422,23 +448,156 @@
       color: var(--gray-400);
     }
 
+    /* Dark mode (class-based for toggle support) */
+    html.dark body {
+      background:
+        radial-gradient(circle, var(--gray-800) 1px, transparent 1px),
+        var(--gray-900);
+      background-size: 32px 32px;
+      color: var(--gray-100);
+    }
+
+    html.dark .hero .tagline { color: var(--gray-100); }
+    html.dark .hero h1,
+    html.dark .hero .subtitle { color: var(--gray-400); }
+
+    html.dark section h2 { color: var(--gray-100); }
+
+    html.dark .feature,
+    html.dark .expert-card {
+      background: var(--gray-800);
+      border-color: var(--gray-700);
+    }
+
+    html.dark .feature h3,
+    html.dark .expert-card .expert-id { color: var(--gray-100); }
+    html.dark .feature p { color: var(--gray-400); }
+
+    html.dark .expert-badge { border-color: var(--gray-800); }
+
+    html.dark .experts-intro { color: var(--gray-400); }
+    html.dark .expert-note { color: var(--gray-500); }
+
+    html.dark .feature-icon[style*="background: #fc51301a"] { background: #fc513030 !important; }
+    html.dark .feature-icon[style*="background: #30bced1a"] { background: #30bced30 !important; }
+    html.dark .feature-icon[style*="background: #6cc46f1a"] { background: #6cc46f30 !important; }
+    html.dark .feature-icon[style*="background: #0a0a0a1a"] { background: #ffffff15 !important; color: var(--gray-300) !important; }
+
+    html.dark .hero-logo path[fill="#0a0a0a"] { fill: rgba(255, 255, 255, 0.3); }
+
+    html.dark .expert-avatar .avatar-icon { color: var(--gray-600); }
+
+    html.dark .comparison th,
+    html.dark .comparison td { border-color: var(--gray-700); }
+    html.dark .comparison th,
+    html.dark .comparison td:first-child { color: var(--gray-400); }
+    html.dark .comparison .highlight { color: var(--gray-100); }
+
+    html.dark footer { border-color: var(--gray-700); }
+    html.dark footer a { color: var(--gray-400); }
+    html.dark footer a:hover { color: var(--gray-100); }
+    html.dark .footer-credit { color: var(--gray-500); }
+
+    html.dark pre,
+    html.dark .tree {
+      background: #000;
+      box-shadow: none;
+      border-color: var(--gray-800);
+    }
+
+    html.dark pre { color: var(--gray-200); }
+    html.dark pre .comment { color: var(--gray-500); }
+    html.dark pre .cmd { color: var(--green); }
+    html.dark pre .flag { color: var(--blue); }
+    html.dark pre .string { color: var(--red); }
+
+    html.dark .tree { color: var(--gray-400); }
+
+    html.dark .tree .dir { color: var(--blue); }
+    html.dark .tree .file { color: var(--gray-200); }
+    html.dark .tree .desc { color: var(--gray-500); }
+
+    html.dark .install-box { background: #000; }
+    html.dark .install-box:hover { background: var(--black); }
+
+    html.dark .install-note { color: var(--gray-500); }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 100;
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--gray-200);
+      border-radius: 50%;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+      padding: 0;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--gray-400);
+    }
+
+    .theme-toggle svg {
+      width: 14px;
+      height: 14px;
+      color: var(--gray-600);
+      transition: color 0.2s;
+    }
+
+    .theme-toggle .icon-moon { display: block; }
+    .theme-toggle .icon-sun { display: none; }
+
+    html.dark .theme-toggle {
+      background: var(--gray-800);
+      border-color: var(--gray-700);
+    }
+
+    html.dark .theme-toggle:hover {
+      border-color: var(--gray-500);
+    }
+
+    html.dark .theme-toggle svg { color: var(--gray-300); }
+    html.dark .theme-toggle .icon-moon { display: none; }
+    html.dark .theme-toggle .icon-sun { display: block; }
+
     /* Responsive */
     @media (max-width: 600px) {
       .hero { padding: 48px 0 32px; }
-      .hero .tagline { font-size: 1.5rem; }
-      .features { grid-template-columns: 1fr; }
-      .experts { grid-template-columns: 1fr 1fr; }
+      .hero .tagline { font-size: 2.2rem; }
+      .hero svg { width: 140px; }
+      .features { grid-template-columns: 1fr; gap: 12px; }
+      .feature.span-2 { grid-column: span 1; }
+      .feature.span-full {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 28px;
+      }
+      .feature.span-full .feature-icon { margin-bottom: 16px; }
+      .experts { grid-template-columns: 1fr; }
       .install-box .copy-hint { display: none; }
     }
   </style>
 </head>
 <body>
 
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+  <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+  <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+</button>
+
 <div class="container">
 
   <!-- Hero -->
   <div class="hero">
-    <svg width="384px" height="219px" viewBox="0 0 384 219" xmlns="http://www.w3.org/2000/svg">
+    <svg class="hero-logo" width="384px" height="219px" viewBox="0 0 384 219" xmlns="http://www.w3.org/2000/svg">
       <g stroke="none" fill="none" fill-rule="evenodd" stroke-width="1">
         <g transform="translate(40, 40)">
           <path d="M155.094,109.281689 L164.479124,125.537525 C165.041212,126.511091 165.575299,127.424292 166.084656,128.282594 L77.5,128.282032 C72.2532949,128.282032 68,124.028737 68,118.782032 C68,113.535327 72.2532949,109.282032 77.5,109.282032 L155.094,109.281689 Z M138.725,76.2816886 L138.777274,76.5365208 C139.788769,81.2789828 141.311379,85.3289924 147.012856,95.2816874 L63.5,95.2820323 C58.2532949,95.2820323 54,91.0287374 54,85.7820323 C54,80.5353272 58.2532949,76.2820323 63.5,76.2820323 L138.725,76.2816886 Z M147.012412,43.2831536 C141.3113,53.2352829 139.788742,57.2852051 138.777274,62.0275438 C138.759129,62.1126197 138.7413,62.1976555 138.723787,62.2826525 L34.5,62.2820323 C29.2532949,62.2820323 25,58.0287374 25,52.7820323 C25,47.5353272 29.2532949,43.2820323 34.5,43.2820323 Z M166.085121,10.2806886 C165.575624,11.1392173 165.041383,12.0526778 164.479124,13.0265398 L155.093,29.2816886 L71.5,29.2820323 C66.2532949,29.2820323 62,25.0287374 62,19.7820323 C62,14.5353272 66.2532949,10.2820323 71.5,10.2820323 Z" fill="#0a0a0a"></path>
@@ -480,6 +639,12 @@
 <span class="comment"># Use a named group</span>
 <span class="cmd">panel run</span> <span class="flag">-f</span> prompt.md <span class="flag">--group</span> smart
 
+<span class="comment"># Apply an expert for a focused review</span>
+<span class="cmd">panel run</span> <span class="flag">-E</span> security <span class="string">"review this authentication flow"</span>
+
+<span class="comment"># Use a team — each tool × each expert</span>
+<span class="cmd">panel run</span> <span class="flag">-T</span> code-review <span class="string">"review this code"</span>
+
 <span class="comment"># Pipe from stdin</span>
 echo <span class="string">"explain this error"</span> | <span class="cmd">panel run</span></pre>
   </section>
@@ -488,25 +653,32 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
   <section>
     <h2>Features</h2>
     <div class="features">
-      <div class="feature">
+      <div class="feature span-2">
         <div class="feature-icon" style="background: #fc51301a; color: var(--red);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></svg></div>
         <h3>Parallel dispatch</h3>
-        <p>Run multiple AI CLIs simultaneously with configurable concurrency limits.</p>
+        <p>Run multiple AI CLIs simultaneously with configurable concurrency limits and process-group cleanup.</p>
       </div>
       <div class="feature">
         <div class="feature-icon" style="background: #30bced1a; color: var(--blue);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></div>
         <h3>Read-only mode</h3>
-        <p>Enforced, best-effort, or none. Each adapter uses the right flags for its CLI.</p>
+        <p>Enforced, best-effort, or none. Each adapter uses the right flags.</p>
       </div>
       <div class="feature">
         <div class="feature-icon" style="background: #6cc46f1a; color: var(--green);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-1.5"/><path d="M2 13h10"/><path d="m5 10-3 3 3 3"/></svg></div>
         <h3>Structured output</h3>
-        <p>Each run produces a directory with responses, stderr, prompt, and a JSON manifest.</p>
+        <p>Responses, stderr, prompt, and JSON manifest per run.</p>
       </div>
-      <div class="feature">
+      <div class="feature span-2">
         <div class="feature-icon" style="background: #0a0a0a1a; color: var(--gray-700);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></div>
         <h3>Zero config start</h3>
-        <p><code>panel init</code> auto-discovers installed CLIs and writes a working config.</p>
+        <p><code>panel init</code> auto-discovers installed CLIs and writes a working config in seconds.</p>
+      </div>
+      <div class="feature span-full">
+        <div class="feature-icon" style="background: #fc51301a; color: var(--red);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg></div>
+        <div class="feature-text">
+          <h3>Expert teams</h3>
+          <p>Group experts into reusable teams. One flag dispatches a cross-product of tools and perspectives.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -574,6 +746,13 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
 <span class="comment"># Create your own</span>
 <span class="cmd">panel experts create</span> my-golang-expert</pre>
     <p class="expert-note">6 built-in presets. Create unlimited custom experts as markdown files.</p>
+    <h3 style="margin-top: 32px; font-size: 1.1rem; font-weight: 600;">Teams</h3>
+    <p class="experts-intro" style="margin-top: 12px;">Group experts into reusable teams. <code>--team</code> creates a cross-product &mdash; each tool runs once per expert.</p>
+    <pre><span class="comment"># Create a team</span>
+<span class="cmd">panel teams create</span> code-review <span class="flag">--experts</span> security,architect,reviewer
+
+<span class="comment"># Run with a team (2 tools &times; 3 experts = 6 parallel runs)</span>
+<span class="cmd">panel run</span> <span class="flag">-t</span> claude-opus,gemini-3-pro <span class="flag">-T</span> code-review <span class="string">"review this code"</span></pre>
   </section>
 
   <!-- Output -->
@@ -590,6 +769,9 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
     <span class="file">claude-opus.prompt.md</span>    <span class="desc"># per-tool prompt with expert</span>
     <span class="file">gemini-3-pro.md</span>          <span class="desc"># Gemini's response</span>
     <span class="file">gemini-3-pro.stderr</span>      <span class="desc"># Gemini's stderr</span>
+    <span class="comment"># With --team, output uses tool@expert IDs:</span>
+    <span class="file">claude-opus@security.md</span>      <span class="desc"># Claude as security expert</span>
+    <span class="file">claude-opus@security.prompt.md</span> <span class="desc"># per-tool prompt</span>
     </div>
   </section>
 
@@ -649,6 +831,13 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
 </footer>
 
 <script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.classList.toggle('dark');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  if (typeof drawDots === 'function') drawDots();
+}
+
 function copyInstall(el) {
   navigator.clipboard.writeText('brew install codebeauty/tap/panel');
   el.classList.add('copied');
@@ -679,7 +868,8 @@ function copyInstall(el) {
     canvas.style.height = h + 'px';
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
-    ctx.globalAlpha = 0.25;
+    const isDark = document.documentElement.classList.contains('dark');
+    ctx.globalAlpha = isDark ? 0.08 : 0.25;
 
     let seed = 42;
     function rand() {
@@ -701,11 +891,19 @@ function copyInstall(el) {
     }
   }
 
+  window.drawDots = draw;
+
   let timer;
   draw();
   window.addEventListener('resize', function() {
     clearTimeout(timer);
     timer = setTimeout(draw, 150);
+  });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+    if (!localStorage.getItem('theme')) {
+      document.documentElement.classList.toggle('dark', e.matches);
+      draw();
+    }
   });
 })();
 </script>
