@@ -10,7 +10,7 @@
 ```bash
 git clone https://github.com/codebeauty/panel.git
 cd panel
-make build      # -> bin/panel
+make build      # -> dist/panel
 make install    # -> /usr/local/bin/panel
 ```
 

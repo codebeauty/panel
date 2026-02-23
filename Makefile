@@ -1,4 +1,4 @@
-BINARY := bin/panel
+BINARY := dist/panel
 VERSION ?= dev
 GOFLAGS := -ldflags="-s -w -X github.com/codebeauty/panel/internal/cli.version=$(VERSION)" -trimpath
 
@@ -12,6 +12,6 @@ test:
 	go test ./... -v -race
 
 clean:
-	rm -f $(BINARY)
+	rm -rf dist/
 
 .PHONY: build install test clean
