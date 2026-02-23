@@ -36,6 +36,7 @@ type ToolConfig struct {
 	ExtraFlags []string `json:"extraFlags,omitempty"`
 	Enabled    bool     `json:"enabled"`
 	Stdin      bool     `json:"stdin,omitempty"`
+	Persona    string   `json:"persona,omitempty"`
 }
 
 func NewDefaults() *Config {
