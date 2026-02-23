@@ -179,7 +179,7 @@ func TestLoadMergedNoProjectConfig(t *testing.T) {
 	assert.Equal(t, "./agents/panel", cfg.Defaults.OutputDir)
 }
 
-func TestToolConfigPersonaField(t *testing.T) {
+func TestToolConfigExpertField(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "config.json")
 
@@ -189,7 +189,7 @@ func TestToolConfigPersonaField(t *testing.T) {
 				"binary": "/usr/local/bin/claude",
 				"adapter": "claude",
 				"enabled": true,
-				"persona": "security"
+				"expert": "security"
 			}
 		}
 	}`
@@ -197,10 +197,10 @@ func TestToolConfigPersonaField(t *testing.T) {
 
 	cfg, err := LoadFromFile(cfgPath)
 	assert.NoError(t, err)
-	assert.Equal(t, "security", cfg.Tools["claude"].Persona)
+	assert.Equal(t, "security", cfg.Tools["claude"].Expert)
 }
 
-func TestToolConfigPersonaOmitEmpty(t *testing.T) {
+func TestToolConfigExpertOmitEmpty(t *testing.T) {
 	cfg := NewDefaults()
 	cfg.Tools["claude"] = ToolConfig{
 		Binary:  "/usr/local/bin/claude",
@@ -214,7 +214,52 @@ func TestToolConfigPersonaOmitEmpty(t *testing.T) {
 	assert.NoError(t, err)
 
 	data, _ := os.ReadFile(path)
-	assert.NotContains(t, string(data), "persona")
+	assert.NotContains(t, string(data), "expert")
+}
+
+func TestNewDefaultsHasTeams(t *testing.T) {
+	cfg := NewDefaults()
+	assert.NotNil(t, cfg.Teams)
+	assert.Empty(t, cfg.Teams)
+}
+
+func TestLoadFromFileWithTeams(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.json")
+	data := `{
+		"tools": {"claude": {"binary": "claude", "adapter": "claude", "enabled": true}},
+		"teams": {"code-review": ["security", "architect", "reviewer"]}
+	}`
+	os.WriteFile(cfgPath, []byte(data), 0o600)
+
+	cfg, err := LoadFromFile(cfgPath)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"security", "architect", "reviewer"}, cfg.Teams["code-review"])
+}
+
+func TestLoadFromFileTeamsNilInit(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.json")
+	data := `{"tools": {}}`
+	os.WriteFile(cfgPath, []byte(data), 0o600)
+
+	cfg, err := LoadFromFile(cfgPath)
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg.Teams)
+}
+
+func TestSaveAndLoadWithTeams(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+
+	cfg := NewDefaults()
+	cfg.Teams["review"] = []string{"security", "architect"}
+	err := Save(cfg, path)
+	assert.NoError(t, err)
+
+	loaded, err := LoadFromFile(path)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"security", "architect"}, loaded.Teams["review"])
 }
 
 func TestStricterReadOnly(t *testing.T) {

@@ -12,19 +12,19 @@ import (
 
 // RunConfig holds the inputs needed to drive the TUI run flow.
 type RunConfig struct {
-	AllToolIDs  []string          // all enabled tool IDs for selection
-	Adapters    map[string]string // toolID -> adapter name
-	PersonaIDs  []string          // available personas
-	BuiltinSet  map[string]bool   // which personas are built-in
-	Prompt      string
-	SkipSelect  bool   // --tools or --group provided
-	SkipPersona bool   // -P flag or no personas
-	PrePersona  string // persona from -P flag
+	AllToolIDs []string          // all enabled tool IDs for selection
+	Adapters   map[string]string // toolID -> adapter name
+	ExpertIDs  []string          // available experts
+	BuiltinSet map[string]bool   // which experts are built-in
+	Prompt     string
+	SkipSelect bool   // --tools or --group provided
+	SkipExpert bool   // -E flag or no experts
+	PreExpert  string // expert from -E flag
 }
 
 // DispatchFunc is called when the user confirms. It runs the tools and sends
 // messages back via the tea.Program.
-type DispatchFunc func(ctx context.Context, toolIDs []string, persona string, program *tea.Program)
+type DispatchFunc func(ctx context.Context, toolIDs []string, expert string, program *tea.Program)
 
 // Model is the top-level BubbleTea model for `panel run`.
 type Model struct {
@@ -36,7 +36,7 @@ type Model struct {
 
 	// Phase models
 	selectModel   SelectModel
-	personaModel  PersonaModel
+	expertModel   ExpertModel
 	confirmModel  ConfirmModel
 	progressModel ProgressModel
 	summaryModel  SummaryModel
@@ -47,8 +47,8 @@ type Model struct {
 	cancel   context.CancelFunc
 
 	// Selected state
-	selectedTools   []string
-	selectedPersona string
+	selectedTools  []string
+	selectedExpert string
 }
 
 // NewModel creates the TUI model. The dispatch function is called when execution starts.
@@ -60,30 +60,30 @@ func NewModel(cfg RunConfig, dispatch DispatchFunc) Model {
 
 	if cfg.SkipSelect {
 		m.selectedTools = cfg.AllToolIDs
-		if cfg.SkipPersona {
-			m.selectedPersona = cfg.PrePersona
-			// Skip directly to progress for single tool with no persona, else confirm
-			if len(cfg.AllToolIDs) == 1 && cfg.PrePersona == "" {
+		if cfg.SkipExpert {
+			m.selectedExpert = cfg.PreExpert
+			// Skip directly to progress for single tool with no expert, else confirm
+			if len(cfg.AllToolIDs) == 1 && cfg.PreExpert == "" {
 				m.phase = PhaseProgress
 				m.progressModel = NewProgressModel(cfg.AllToolIDs)
 			} else {
 				m.phase = PhaseConfirm
 				m.confirmModel = ConfirmModel{
 					ToolIDs: cfg.AllToolIDs,
-					Persona: cfg.PrePersona,
+					Expert:  cfg.PreExpert,
 					Prompt:  cfg.Prompt,
 				}
 			}
 		} else {
-			m.phase = PhasePersona
+			m.phase = PhaseExpert
 		}
 	} else {
 		m.phase = PhaseSelect
 	}
 
 	m.selectModel = NewSelectModel(cfg.AllToolIDs, cfg.Adapters)
-	if !cfg.SkipPersona {
-		m.personaModel = NewPersonaModel(cfg.PersonaIDs, cfg.BuiltinSet)
+	if !cfg.SkipExpert {
+		m.expertModel = NewExpertModel(cfg.ExpertIDs, cfg.BuiltinSet)
 	}
 
 	return m
@@ -149,8 +149,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.phase {
 	case PhaseSelect:
 		return m.updateSelect(msg)
-	case PhasePersona:
-		return m.updatePersona(msg)
+	case PhaseExpert:
+		return m.updateExpert(msg)
 	case PhaseConfirm:
 		return m.updateConfirm(msg)
 	case PhaseProgress:
@@ -170,8 +170,8 @@ func (m Model) View() string {
 	switch m.phase {
 	case PhaseSelect:
 		return m.selectModel.View()
-	case PhasePersona:
-		return m.personaModel.View()
+	case PhaseExpert:
+		return m.expertModel.View()
 	case PhaseConfirm:
 		return m.confirmModel.View()
 	case PhaseProgress:
@@ -191,16 +191,16 @@ func (m Model) updateSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.selectedTools) == 0 {
 				return m, nil // require at least one
 			}
-			if m.cfg.SkipPersona {
-				m.selectedPersona = m.cfg.PrePersona
+			if m.cfg.SkipExpert {
+				m.selectedExpert = m.cfg.PreExpert
 				m.confirmModel = ConfirmModel{
 					ToolIDs: m.selectedTools,
-					Persona: m.selectedPersona,
+					Expert:  m.selectedExpert,
 					Prompt:  m.cfg.Prompt,
 				}
 				m.phase = PhaseConfirm
 			} else {
-				m.phase = PhasePersona
+				m.phase = PhaseExpert
 			}
 			return m, nil
 		}
@@ -211,15 +211,15 @@ func (m Model) updateSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Model) updatePersona(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) updateExpert(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, Keys.Confirm):
-			m.selectedPersona = m.personaModel.SelectedPersona()
+			m.selectedExpert = m.expertModel.SelectedExpert()
 			m.confirmModel = ConfirmModel{
 				ToolIDs: m.selectedTools,
-				Persona: m.selectedPersona,
+				Expert:  m.selectedExpert,
 				Prompt:  m.cfg.Prompt,
 			}
 			m.phase = PhaseConfirm
@@ -233,7 +233,7 @@ func (m Model) updatePersona(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-	m.personaModel, cmd = m.personaModel.Update(msg)
+	m.expertModel, cmd = m.expertModel.Update(msg)
 	return m, cmd
 }
 
@@ -246,8 +246,8 @@ func (m Model) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.phase = PhaseProgress
 			return m, tea.Batch(m.startDispatch(), m.progressModel.Spinner.Tick)
 		case key.Matches(msg, Keys.Back):
-			if !m.cfg.SkipPersona {
-				m.phase = PhasePersona
+			if !m.cfg.SkipExpert {
+				m.phase = PhaseExpert
 			} else if !m.cfg.SkipSelect {
 				m.phase = PhaseSelect
 			}
@@ -269,7 +269,7 @@ func (m *Model) startDispatch() tea.Cmd {
 		// dispatch runs in a goroutine and sends messages via program.Send()
 		// It's called from Init or Confirm phase. The DispatchFunc is responsible
 		// for sending ToolStartedMsg, ToolCompletedMsg, and AllCompletedMsg.
-		go m.dispatch(ctx, m.selectedTools, m.selectedPersona, nil)
+		go m.dispatch(ctx, m.selectedTools, m.selectedExpert, nil)
 		return nil
 	}
 }

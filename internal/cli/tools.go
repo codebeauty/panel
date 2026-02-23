@@ -56,10 +56,10 @@ func newToolsListCmd() *cobra.Command {
 
 			if !tui.IsTTY() {
 				w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-				fmt.Fprintln(w, "ID\tADAPTER\tBINARY\tENABLED\tPERSONA")
+				fmt.Fprintln(w, "ID\tADAPTER\tBINARY\tENABLED\tEXPERT")
 				for _, id := range ids {
 					t := cfg.Tools[id]
-					fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n", id, t.Adapter, t.Binary, t.Enabled, t.Persona)
+					fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n", id, t.Adapter, t.Binary, t.Enabled, t.Expert)
 				}
 				w.Flush()
 				return nil
@@ -69,8 +69,8 @@ func newToolsListCmd() *cobra.Command {
 			for _, id := range ids {
 				tc := cfg.Tools[id]
 				p := ""
-				if tc.Persona != "" {
-					p = tui.StyleMuted.Render(tc.Persona)
+				if tc.Expert != "" {
+					p = tui.StyleMuted.Render(tc.Expert)
 				}
 				rows = append(rows, []string{
 					id,
@@ -80,7 +80,7 @@ func newToolsListCmd() *cobra.Command {
 				})
 			}
 			t := tui.Table{
-				Headers: []string{"ID", "ADAPTER", "ENABLED", "PERSONA"},
+				Headers: []string{"ID", "ADAPTER", "ENABLED", "EXPERT"},
 				Rows:    rows,
 			}
 			fmt.Print(t.Render())

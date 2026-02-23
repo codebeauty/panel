@@ -11,7 +11,7 @@ type Phase int
 
 const (
 	PhaseSelect  Phase = iota // tool multi-select
-	PhasePersona              // persona picker
+	PhaseExpert               // expert picker
 	PhaseConfirm              // review & dispatch
 	PhaseProgress             // live execution
 	PhaseSummary              // results viewer

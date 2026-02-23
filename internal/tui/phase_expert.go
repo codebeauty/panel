@@ -9,28 +9,28 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type PersonaModel struct {
-	items   []string // persona IDs, first entry is "(none)"
+type ExpertModel struct {
+	items   []string // expert IDs, first entry is "(none)"
 	cursor  int
 	builtin map[string]bool
 }
 
-func NewPersonaModel(personaIDs []string, builtinSet map[string]bool) PersonaModel {
-	items := append([]string{"(none)"}, personaIDs...)
-	return PersonaModel{
+func NewExpertModel(expertIDs []string, builtinSet map[string]bool) ExpertModel {
+	items := append([]string{"(none)"}, expertIDs...)
+	return ExpertModel{
 		items:   items,
 		builtin: builtinSet,
 	}
 }
 
-func (m PersonaModel) SelectedPersona() string {
+func (m ExpertModel) SelectedExpert() string {
 	if m.cursor == 0 {
 		return ""
 	}
 	return m.items[m.cursor]
 }
 
-func (m PersonaModel) Update(msg tea.Msg) (PersonaModel, tea.Cmd) {
+func (m ExpertModel) Update(msg tea.Msg) (ExpertModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -47,10 +47,10 @@ func (m PersonaModel) Update(msg tea.Msg) (PersonaModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m PersonaModel) View() string {
+func (m ExpertModel) View() string {
 	var b strings.Builder
 
-	title := lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render("Select Persona")
+	title := lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render("Select Expert")
 	b.WriteString(fmt.Sprintf("  %s\n\n", title))
 
 	for i, id := range m.items {

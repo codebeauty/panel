@@ -162,8 +162,8 @@ func newSummaryListCmd() *cobra.Command {
 								icon = "✗"
 							}
 						}
-						if res.Persona != "" {
-							toolSummaries[i] = fmt.Sprintf("%s [%s] (%s %s)", res.ToolID, res.Persona, icon, res.Duration)
+						if res.Expert != "" {
+							toolSummaries[i] = fmt.Sprintf("%s [%s] (%s %s)", res.ToolID, res.Expert, icon, res.Duration)
 						} else {
 							toolSummaries[i] = fmt.Sprintf("%s (%s %s)", res.ToolID, icon, res.Duration)
 						}

@@ -21,7 +21,7 @@ import (
 	"github.com/codebeauty/panel/internal/config"
 	"github.com/codebeauty/panel/internal/gather"
 	"github.com/codebeauty/panel/internal/output"
-	"github.com/codebeauty/panel/internal/persona"
+	"github.com/codebeauty/panel/internal/expert"
 	"github.com/codebeauty/panel/internal/runner"
 	"github.com/codebeauty/panel/internal/tui"
 	"github.com/codebeauty/panel/internal/ui"
@@ -38,7 +38,9 @@ func newRunCmd() *cobra.Command {
 		fileFlag    string
 		dryRun      bool
 		contextFlag string
-		personaFlag string
+		expertFlag  string
+		teamFlag    string
+		yesFlag     bool
 	)
 
 	cmd := &cobra.Command{
@@ -49,6 +51,10 @@ func newRunCmd() *cobra.Command {
 			cfg, err := config.LoadMerged(mustGetwd())
 			if err != nil {
 				return fmt.Errorf("loading config: %w", err)
+			}
+
+			if teamFlag != "" && expertFlag != "" {
+				return fmt.Errorf("--team and --expert are mutually exclusive")
 			}
 
 			prompt, err := resolvePrompt(fileFlag, args)
@@ -93,9 +99,20 @@ func newRunCmd() *cobra.Command {
 				if len(toolIDs) == 0 {
 					return fmt.Errorf("no tools configured — run 'panel init' to set up tools")
 				}
-				toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
-
-				return runTUI(cfg, prompt, toolIDs, ro, personaFlag, preSelected)
+				if teamFlag != "" {
+					teamExperts, ok := cfg.Teams[teamFlag]
+					if !ok {
+						return fmt.Errorf("unknown team: %q", teamFlag)
+					}
+					if len(teamExperts) == 0 {
+						return fmt.Errorf("team %q has no experts", teamFlag)
+					}
+					toolIDs = expandTeamCrossProduct(toolIDs, teamExperts, cfg)
+					preSelected = true // skip TUI tool selection, team defines the set
+				} else {
+					toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
+				}
+				return runTUI(cfg, prompt, toolIDs, ro, expertFlag, teamFlag, preSelected)
 			}
 
 			// --- Non-TUI path: JSON, dry-run, piped, or non-interactive ---
@@ -115,7 +132,29 @@ func newRunCmd() *cobra.Command {
 				}
 			}
 
-			toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
+			if teamFlag != "" {
+				teamExperts, ok := cfg.Teams[teamFlag]
+				if !ok {
+					return fmt.Errorf("unknown team: %q", teamFlag)
+				}
+				if len(teamExperts) == 0 {
+					return fmt.Errorf("team %q has no experts", teamFlag)
+				}
+				toolIDs = expandTeamCrossProduct(toolIDs, teamExperts, cfg)
+
+				// Confirmation prompt for large cross-products
+				if len(toolIDs) > 8 && !yesFlag &&
+					term.IsTerminal(int(os.Stderr.Fd())) && term.IsTerminal(int(os.Stdin.Fd())) {
+					fmt.Fprintf(os.Stderr, "This will dispatch %d runs (%d experts × %d tools). Continue? [y/N] ",
+						len(toolIDs), len(teamExperts), len(toolIDs)/len(teamExperts))
+					scanner := bufio.NewScanner(os.Stdin)
+					if !scanner.Scan() || strings.ToLower(strings.TrimSpace(scanner.Text())) != "y" {
+						return fmt.Errorf("aborted")
+					}
+				}
+			} else {
+				toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
+			}
 
 			tools, err := buildTools(cfg, toolIDs)
 			if err != nil {
@@ -123,7 +162,20 @@ func newRunCmd() *cobra.Command {
 			}
 
 			if dryRun {
-				personaIDs, _, pErr := resolveToolPersonas(tools, cfg, personaFlag)
+				var dryExpertIDs []string
+				if teamFlag != "" {
+					eids, _, dryErr := resolveTeamExperts(toolIDs, expert.Dir())
+					if dryErr != nil {
+						fmt.Fprintf(os.Stderr, "warning: %v\n", dryErr)
+					}
+					dryExpertIDs = eids
+				} else {
+					eids, _, dryErr := resolveToolExperts(tools, cfg, expertFlag)
+					if dryErr != nil {
+						fmt.Fprintf(os.Stderr, "warning: %v\n", dryErr)
+					}
+					dryExpertIDs = eids
+				}
 				params := adapter.RunParams{
 					Prompt:     prompt,
 					PromptFile: "<output>/prompt.md",
@@ -137,8 +189,8 @@ func newRunCmd() *cobra.Command {
 					if inv.Stdin != "" {
 						fmt.Fprintf(os.Stderr, "  stdin: %d bytes\n", len(inv.Stdin))
 					}
-					if pErr == nil && personaIDs[i] != "" {
-						fmt.Fprintf(os.Stderr, "  persona: %s\n", personaIDs[i])
+					if i < len(dryExpertIDs) && dryExpertIDs[i] != "" {
+						fmt.Fprintf(os.Stderr, "  expert: %s\n", dryExpertIDs[i])
 					}
 				}
 				return nil
@@ -177,10 +229,19 @@ func newRunCmd() *cobra.Command {
 			prog.Start()
 			defer prog.Stop()
 
-			// Resolve personas
-			personaIDs, personaContents, err := resolveToolPersonas(tools, cfg, personaFlag)
-			if err != nil {
-				return err
+			// Resolve experts
+			var expertIDs []string
+			var expertContents []string
+			if teamFlag != "" {
+				expertIDs, expertContents, err = resolveTeamExperts(toolIDs, expert.Dir())
+				if err != nil {
+					return err
+				}
+			} else {
+				expertIDs, expertContents, err = resolveToolExperts(tools, cfg, expertFlag)
+				if err != nil {
+					return err
+				}
 			}
 
 			// Build per-tool params
@@ -192,26 +253,26 @@ func newRunCmd() *cobra.Command {
 				Timeout:    time.Duration(cfg.Defaults.Timeout) * time.Second,
 			}
 
-			hasPersona := false
-			for _, c := range personaContents {
+			hasExpert := false
+			for _, c := range expertContents {
 				if c != "" {
-					hasPersona = true
+					hasExpert = true
 					break
 				}
 			}
 
 			var results []runner.Result
-			if !hasPersona {
+			if !hasExpert {
 				results = r.Run(ctx, tools, baseParams, runDir)
 			} else {
 				perToolParams := make([]adapter.RunParams, len(tools))
 				for i, tool := range tools {
 					p := baseParams
-					if personaContents[i] != "" {
-						p.Prompt = persona.InjectPersona(personaContents[i], prompt)
+					if expertContents[i] != "" {
+						p.Prompt = expert.Inject(expertContents[i], prompt)
 						toolPromptPath := filepath.Join(runDir, tool.ID+".prompt.md")
 						if err := os.WriteFile(toolPromptPath, []byte(p.Prompt), 0o600); err != nil {
-							return fmt.Errorf("writing persona prompt for %s: %w", tool.ID, err)
+							return fmt.Errorf("writing expert prompt for %s: %w", tool.ID, err)
 						}
 						p.PromptFile = toolPromptPath
 					}
@@ -226,10 +287,10 @@ func newRunCmd() *cobra.Command {
 				MaxParallel: cfg.Defaults.MaxParallel,
 			})
 
-			// Record personas in manifest
-			for i, pid := range personaIDs {
-				if pid != "" && i < len(manifest.Results) {
-					manifest.Results[i].Persona = pid
+			// Record experts in manifest
+			for i, eid := range expertIDs {
+				if eid != "" && i < len(manifest.Results) {
+					manifest.Results[i].Expert = eid
 				}
 			}
 			if err := output.WriteManifest(runDir, manifest); err != nil {
@@ -266,7 +327,9 @@ func newRunCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&fileFlag, "file", "f", "", "Read prompt from file")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show invocations without executing")
 	cmd.Flags().StringVarP(&contextFlag, "context", "c", "", "Gather context from paths (comma-separated, or \".\" for git diff)")
-	cmd.Flags().StringVarP(&personaFlag, "persona", "P", "", "Persona ID to apply to all tools")
+	cmd.Flags().StringVarP(&expertFlag, "expert", "E", "", "Expert ID to apply to all tools")
+	cmd.Flags().StringVarP(&teamFlag, "team", "T", "", "Named team of experts from config")
+	cmd.Flags().BoolVar(&yesFlag, "yes", false, "Skip confirmation prompts")
 
 	return cmd
 }
@@ -437,28 +500,28 @@ func printSummary(results []runner.Result, runDir string) {
 	fmt.Fprintf(os.Stderr, "\nOutput: %s\n", runDir)
 }
 
-// resolveToolPersonas resolves persona content for each tool.
-// Returns parallel slices of persona IDs and content (empty string = no persona).
-func resolveToolPersonas(tools []runner.Tool, cfg *config.Config, personaFlag string) (ids []string, contents []string, err error) {
-	personaDir := persona.PersonasDir()
+// resolveToolExperts resolves expert content for each tool.
+// Returns parallel slices of expert IDs and content (empty string = no expert).
+func resolveToolExperts(tools []runner.Tool, cfg *config.Config, expertFlag string) (ids []string, contents []string, err error) {
+	expertDir := expert.Dir()
 	ids = make([]string, len(tools))
 	contents = make([]string, len(tools))
 
 	for i, tool := range tools {
-		pid := personaFlag // CLI flag wins
-		if pid == "" {
+		eid := expertFlag // CLI flag wins
+		if eid == "" {
 			if tc, ok := cfg.Tools[tool.ID]; ok {
-				pid = tc.Persona
+				eid = tc.Expert
 			}
 		}
-		if pid == "" {
+		if eid == "" {
 			continue
 		}
-		content, err := persona.Load(pid, personaDir)
+		content, err := expert.Load(eid, expertDir)
 		if err != nil {
-			return nil, nil, fmt.Errorf("loading persona %q for %s: %w", pid, tool.ID, err)
+			return nil, nil, fmt.Errorf("loading expert %q for %s: %w", eid, tool.ID, err)
 		}
-		ids[i] = pid
+		ids[i] = eid
 		contents[i] = content
 	}
 	return ids, contents, nil

@@ -45,7 +45,7 @@ panel run "review this authentication flow for security issues"
 | `panel groups` | Manage named groups of tools |
 | `panel config` | Show resolved configuration |
 | `panel doctor` | Check configuration and tool availability |
-| `panel personas` | Manage personas (list, show, create, edit, reset) |
+| `panel experts` | Manage experts (list, show, create, edit, reset) |
 | `panel agent` | Print setup instructions for AI agent integration |
 | `panel skill` | Print slash-command template for AI agent integration |
 | `panel ls` | Alias for `panel tools list` |
@@ -64,8 +64,8 @@ panel run -t claude-opus,gemini-3-pro "is this migration safe?"
 # Use a named group
 panel run -f prompt.md --group smart
 
-# Assign a persona to all tools
-panel run -P security "review this authentication flow"
+# Assign an expert to all tools
+panel run -E security "review this authentication flow"
 
 # Pipe from stdin
 echo "explain this error" | panel run
@@ -86,7 +86,7 @@ Flags:
   -f, --file <path>        Read prompt from file
       --dry-run            Show invocations without executing
   -c, --context <paths>    Gather context (comma-separated paths, or "." for git diff)
-  -P, --persona <id>       Persona to apply to all tools (overrides per-tool config)
+  -E, --expert <id>        Expert to apply to all tools (overrides per-tool config)
 ```
 
 When running interactively with multiple tools and no `--tools`/`--group` flag, panel shows a numbered list for selection.
@@ -142,7 +142,7 @@ Auto-discover installed AI CLIs and write config.
 panel init
 ```
 
-Scans for `claude`, `codex`, `gemini`, and `amp` binaries in PATH, `/opt/homebrew/bin`, `/usr/local/bin`, and `~/.local/bin`. Registers all model variants per adapter with recommended models enabled by default. Also syncs built-in persona presets to `~/.config/panel/personas/` (existing customizations are preserved).
+Scans for `claude`, `codex`, `gemini`, and `amp` binaries in PATH, `/opt/homebrew/bin`, `/usr/local/bin`, and `~/.local/bin`. Registers all model variants per adapter with recommended models enabled by default. Also syncs built-in expert presets to `~/.config/panel/experts/` (existing customizations are preserved).
 
 ### `panel tools`
 
@@ -165,19 +165,19 @@ panel groups list
 panel groups delete smart
 ```
 
-### `panel personas`
+### `panel experts`
 
-Manage personas — expert roles that shape how AI tools respond to the same prompt.
+Manage experts — expert roles that shape how AI tools respond to the same prompt.
 
 ```bash
-panel personas list              # List all personas (built-in + custom)
-panel personas show security     # Print persona contents
-panel personas create my-expert  # Create custom persona (opens $EDITOR)
-panel personas edit security     # Edit existing persona (opens $EDITOR)
-panel personas reset             # Re-sync built-in presets
+panel experts list              # List all experts (built-in + custom)
+panel experts show security     # Print expert contents
+panel experts create my-expert  # Create custom expert (opens $EDITOR)
+panel experts edit security     # Edit existing expert (opens $EDITOR)
+panel experts reset             # Re-sync built-in presets
 ```
 
-Panel ships 6 built-in personas:
+Panel ships 6 built-in experts:
 
 | ID | Role |
 |----|------|
@@ -188,16 +188,16 @@ Panel ships 6 built-in personas:
 | `devil` | Devil's advocate — challenge assumptions, find flaws, argue the opposite |
 | `product` | Product lead — user impact, acceptance criteria, prioritization |
 
-Personas are markdown files stored in `~/.config/panel/personas/`. Create custom personas by adding `.md` files to that directory or using `panel personas create`.
+Experts are markdown files stored in `~/.config/panel/experts/`. Create custom experts by adding `.md` files to that directory or using `panel experts create`.
 
-#### Creating a custom persona
+#### Creating a custom expert
 
 ```bash
 # Option 1: Use the create command (opens $EDITOR)
-panel personas create golang-expert
+panel experts create golang-expert
 
 # Option 2: Write the file directly
-cat > ~/.config/panel/personas/golang-expert.md << 'EOF'
+cat > ~/.config/panel/experts/golang-expert.md << 'EOF'
 You are a senior Go developer reviewing for idiomatic patterns.
 
 Focus on:
@@ -211,21 +211,21 @@ Be specific: point to the exact line, explain why it's wrong, and provide a corr
 EOF
 ```
 
-The persona ID is the filename without `.md` — use letters, numbers, hyphens, underscores, and dots.
+The expert ID is the filename without `.md` — use letters, numbers, hyphens, underscores, and dots.
 
-#### Using personas
+#### Using experts
 
 ```bash
-# Apply a persona to all tools for one run
-panel run -P security "review this authentication flow"
+# Apply an expert to all tools for one run
+panel run -E security "review this authentication flow"
 
-# Without -P, no persona is used — the prompt is sent as-is
+# Without -E, no expert is used — the prompt is sent as-is
 panel run "review this code"
 ```
 
-#### Per-tool personas in config
+#### Per-tool experts in config
 
-Assign default personas to specific tools in `config.json` so each tool always adopts a different expert role:
+Assign default experts to specific tools in `config.json` so each tool always adopts a different expert role:
 
 ```json
 {
@@ -235,14 +235,14 @@ Assign default personas to specific tools in `config.json` so each tool always a
       "adapter": "claude",
       "extraFlags": ["--model", "opus"],
       "enabled": true,
-      "persona": "security"
+      "expert": "security"
     },
     "gemini-3-pro": {
       "binary": "/usr/local/bin/gemini",
       "adapter": "gemini",
       "extraFlags": ["--model", "gemini-2.5-pro"],
       "enabled": true,
-      "persona": "architect"
+      "expert": "architect"
     },
     "codex": {
       "binary": "/usr/local/bin/codex",
@@ -253,9 +253,9 @@ Assign default personas to specific tools in `config.json` so each tool always a
 }
 ```
 
-In this setup, `panel run "review this code"` sends the prompt to all three tools — Claude answers as a security engineer, Gemini as an architect, and Codex answers without a persona. The `-P` flag overrides all per-tool personas for a single run.
+In this setup, `panel run "review this code"` sends the prompt to all three tools — Claude answers as a security engineer, Gemini as an architect, and Codex answers without an expert. The `-E` flag overrides all per-tool experts for a single run.
 
-When a persona is active, the prompt is prepended with the persona's role instructions. Each tool gets its own prompt file (`<tool-id>.prompt.md`) in the output directory. The original `prompt.md` is always preserved without persona modifications.
+When an expert is active, the prompt is prepended with the expert's role instructions. Each tool gets its own prompt file (`<tool-id>.prompt.md`) in the output directory. The original `prompt.md` is always preserved without expert modifications.
 
 ### `panel skill`
 
@@ -301,7 +301,7 @@ Per-tool fields:
 
 | Field | Description |
 |-------|-------------|
-| `persona` | Default persona ID for this tool (overridden by `-P` flag) |
+| `expert` | Default expert ID for this tool (overridden by `-E` flag) |
 
 ## Output Structure
 
@@ -310,12 +310,12 @@ Each run creates a timestamped directory:
 ```
 agents/panel/
 └── review-auth-flow-1770676882/
-    ├── prompt.md              # Original prompt (without persona)
+    ├── prompt.md              # Original prompt (without expert)
     ├── run.json               # Manifest with metadata
     ├── summary.md             # Heuristic summary (no LLM)
     ├── claude-opus.md         # Claude's response
     ├── claude-opus.stderr     # Claude's stderr
-    ├── claude-opus.prompt.md  # Per-tool prompt with persona (if persona used)
+    ├── claude-opus.prompt.md  # Per-tool prompt with expert (if expert used)
     ├── gemini-3-pro.md        # Gemini's response
     └── gemini-3-pro.stderr    # Gemini's stderr
 ```
