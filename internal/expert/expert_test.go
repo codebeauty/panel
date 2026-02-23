@@ -1,4 +1,4 @@
-package persona
+package expert
 
 import (
 	"os"
@@ -36,7 +36,7 @@ func TestBuiltinIDs(t *testing.T) {
 	}
 }
 
-func TestValidatePersonaID(t *testing.T) {
+func TestValidateID(t *testing.T) {
 	tests := []struct {
 		id    string
 		valid bool
@@ -53,7 +53,7 @@ func TestValidatePersonaID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {
-			err := ValidatePersonaID(tt.id)
+			err := ValidateID(tt.id)
 			if tt.valid {
 				assert.NoError(t, err, "expected %q to be valid", tt.id)
 			} else {
@@ -63,16 +63,16 @@ func TestValidatePersonaID(t *testing.T) {
 	}
 }
 
-func TestPersonasDir(t *testing.T) {
-	dir := PersonasDir()
+func TestDir(t *testing.T) {
+	dir := Dir()
 	assert.Contains(t, dir, "panel")
-	assert.True(t, strings.HasSuffix(dir, "personas"))
+	assert.True(t, strings.HasSuffix(dir, "experts"))
 }
 
-func TestPersonasDirMatchesConfigDir(t *testing.T) {
-	personaDir := PersonasDir()
+func TestDirMatchesConfigDir(t *testing.T) {
+	expertDir := Dir()
 	configDir := config.GlobalConfigDir()
-	assert.Equal(t, filepath.Join(configDir, "personas"), personaDir)
+	assert.Equal(t, filepath.Join(configDir, "experts"), expertDir)
 }
 
 func TestLoad(t *testing.T) {
@@ -96,7 +96,7 @@ func TestLoadValidatesID(t *testing.T) {
 	dir := t.TempDir()
 	_, err := Load("../escape", dir)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid persona ID")
+	assert.Contains(t, err.Error(), "invalid expert ID")
 }
 
 func TestList(t *testing.T) {
@@ -124,7 +124,7 @@ func TestListMissingDir(t *testing.T) {
 }
 
 func TestSyncBuiltinsNewDir(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "personas")
+	dir := filepath.Join(t.TempDir(), "experts")
 	written, err := SyncBuiltins(dir, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 6, written)
@@ -147,7 +147,7 @@ func TestSyncBuiltinsSkipsIdentical(t *testing.T) {
 
 func TestSyncBuiltinsDiffCallback(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "security.md"), []byte("custom security persona"), 0o600)
+	os.WriteFile(filepath.Join(dir, "security.md"), []byte("custom security expert"), 0o600)
 
 	var diffCalled bool
 	var diffID string
@@ -164,7 +164,7 @@ func TestSyncBuiltinsDiffCallback(t *testing.T) {
 	assert.Equal(t, 5, written)
 
 	data, _ := os.ReadFile(filepath.Join(dir, "security.md"))
-	assert.Equal(t, "custom security persona", string(data))
+	assert.Equal(t, "custom security expert", string(data))
 }
 
 func TestSyncBuiltinsOverwrite(t *testing.T) {
@@ -202,20 +202,20 @@ func TestSyncBuiltinsBackup(t *testing.T) {
 	assert.Equal(t, "custom content", string(backup))
 }
 
-func TestInjectPersona(t *testing.T) {
-	result := InjectPersona("You are a security expert.", "Review this code")
+func TestInject(t *testing.T) {
+	result := Inject("You are a security expert.", "Review this code")
 	assert.Contains(t, result, "## Role")
 	assert.Contains(t, result, "You are a security expert.")
 	assert.Contains(t, result, "---")
 	assert.Contains(t, result, "Review this code")
-	// Persona comes before prompt
+	// Expert comes before prompt
 	roleIdx := strings.Index(result, "## Role")
 	promptIdx := strings.Index(result, "Review this code")
 	assert.Less(t, roleIdx, promptIdx)
 }
 
-func TestInjectPersonaEmpty(t *testing.T) {
-	result := InjectPersona("", "Review this code")
+func TestInjectEmpty(t *testing.T) {
+	result := Inject("", "Review this code")
 	assert.Equal(t, "Review this code", result)
 }
 
@@ -234,7 +234,7 @@ func TestSyncBuiltinsDeterministicOrder(t *testing.T) {
 	assert.Equal(t, []string{"architect", "security"}, callOrder)
 }
 
-func TestEndToEndPersonaFlow(t *testing.T) {
+func TestEndToEndExpertFlow(t *testing.T) {
 	dir := t.TempDir()
 
 	// 1. Sync builtins
@@ -247,19 +247,19 @@ func TestEndToEndPersonaFlow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, ids, 6)
 
-	// 3. Load security persona
+	// 3. Load security expert
 	content, err := Load("security", dir)
 	assert.NoError(t, err)
 	assert.Contains(t, content, "security engineer")
 
 	// 4. Inject into prompt
 	prompt := "Review this authentication flow"
-	injected := InjectPersona(content, prompt)
+	injected := Inject(content, prompt)
 	assert.Contains(t, injected, "## Role")
 	assert.Contains(t, injected, "security engineer")
 	assert.Contains(t, injected, prompt)
 
-	// 5. Add a custom persona
+	// 5. Add a custom expert
 	customPath := filepath.Join(dir, "golang.md")
 	os.WriteFile(customPath, []byte("You are a Go expert."), 0o600)
 

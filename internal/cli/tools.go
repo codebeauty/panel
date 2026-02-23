@@ -54,10 +54,10 @@ func newToolsListCmd() *cobra.Command {
 			sort.Strings(ids)
 
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tADAPTER\tBINARY\tENABLED\tPERSONA")
+			fmt.Fprintln(w, "ID\tADAPTER\tBINARY\tENABLED\tEXPERT")
 			for _, id := range ids {
 				t := cfg.Tools[id]
-				fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n", id, t.Adapter, t.Binary, t.Enabled, t.Persona)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n", id, t.Adapter, t.Binary, t.Enabled, t.Expert)
 			}
 			w.Flush()
 			return nil

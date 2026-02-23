@@ -1,4 +1,4 @@
-package persona
+package expert
 
 import (
 	"fmt"
@@ -11,41 +11,41 @@ import (
 	"github.com/codebeauty/panel/internal/config"
 )
 
-var validPersonaID = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+var validID = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 
-// ValidatePersonaID checks that a persona ID is safe for use as a filename.
-func ValidatePersonaID(id string) error {
-	if !validPersonaID.MatchString(id) {
-		return fmt.Errorf("invalid persona ID %q: must match [a-zA-Z0-9._-]+", id)
+// ValidateID checks that an expert ID is safe for use as a filename.
+func ValidateID(id string) error {
+	if !validID.MatchString(id) {
+		return fmt.Errorf("invalid expert ID %q: must match [a-zA-Z0-9._-]+", id)
 	}
 	return nil
 }
 
-// PersonasDir returns the path to the personas directory,
+// Dir returns the path to the experts directory,
 // derived from the global config directory.
-func PersonasDir() string {
-	return filepath.Join(config.GlobalConfigDir(), "personas")
+func Dir() string {
+	return filepath.Join(config.GlobalConfigDir(), "experts")
 }
 
-// Load reads a persona file by ID from the given directory.
+// Load reads an expert file by ID from the given directory.
 // Validates the ID to prevent path traversal.
 func Load(id, dir string) (string, error) {
-	if err := ValidatePersonaID(id); err != nil {
+	if err := ValidateID(id); err != nil {
 		return "", err
 	}
 	path := filepath.Join(dir, id+".md")
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", fmt.Errorf("persona %q not found: %w", id, err)
+		return "", fmt.Errorf("expert %q not found: %w", id, err)
 	}
 	content := string(data)
 	if strings.TrimSpace(content) == "" {
-		return "", fmt.Errorf("persona %q is empty", id)
+		return "", fmt.Errorf("expert %q is empty", id)
 	}
 	return content, nil
 }
 
-// List returns sorted persona IDs (filenames without .md) from the directory.
+// List returns sorted expert IDs (filenames without .md) from the directory.
 func List(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -68,7 +68,7 @@ func List(dir string) ([]string, error) {
 	return ids, nil
 }
 
-// BuiltinIDs returns the sorted list of built-in persona IDs.
+// BuiltinIDs returns the sorted list of built-in expert IDs.
 func BuiltinIDs() []string {
 	ids := make([]string, 0, len(Builtins))
 	for id := range Builtins {
@@ -87,16 +87,16 @@ const (
 	SyncBackup                       // backup existing, then write built-in
 )
 
-// DiffFunc is called when an existing persona differs from the built-in.
+// DiffFunc is called when an existing expert differs from the built-in.
 type DiffFunc func(id, existing, builtin string) SyncAction
 
-// SyncBuiltins writes built-in presets to the personas directory.
+// SyncBuiltins writes built-in presets to the experts directory.
 // Iterates in sorted order for deterministic behavior.
 // If onDiff is nil, modified files are skipped silently.
 // Returns the number of files written.
 func SyncBuiltins(dir string, onDiff DiffFunc) (int, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return 0, fmt.Errorf("creating personas dir: %w", err)
+		return 0, fmt.Errorf("creating experts dir: %w", err)
 	}
 
 	written := 0
@@ -148,17 +148,17 @@ func SyncBuiltins(dir string, onDiff DiffFunc) (int, error) {
 	return written, nil
 }
 
-// InjectPersona prepends persona text to a prompt.
-// If personaText is empty, returns the original prompt unchanged.
-func InjectPersona(personaText, prompt string) string {
-	if personaText == "" {
+// Inject prepends expert text to a prompt.
+// If expertText is empty, returns the original prompt unchanged.
+func Inject(expertText, prompt string) string {
+	if expertText == "" {
 		return prompt
 	}
-	return fmt.Sprintf("## Role\n\n%s\n\n---\n\n%s", personaText, prompt)
+	return fmt.Sprintf("## Role\n\n%s\n\n---\n\n%s", expertText, prompt)
 }
 
-// Builtins contains the 6 built-in persona presets.
-// Keys are persona IDs, values are the full markdown content.
+// Builtins contains the 6 built-in expert presets.
+// Keys are expert IDs, values are the full markdown content.
 var Builtins = map[string]string{
 	"security": `You are a senior security engineer conducting a thorough security review.
 

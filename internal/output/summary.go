@@ -40,8 +40,8 @@ func BuildSummary(manifest *Manifest, runDir string) string {
 	for _, r := range manifest.Results {
 		icon := statusIcon(r.Status)
 		fmt.Fprintf(&b, "\n### %s %s\n", icon, r.ToolID)
-		if r.Persona != "" {
-			fmt.Fprintf(&b, "- Persona: %s\n", r.Persona)
+		if r.Expert != "" {
+			fmt.Fprintf(&b, "- Expert: %s\n", r.Expert)
 		}
 		fmt.Fprintf(&b, "- Status: %s\n", r.Status)
 		fmt.Fprintf(&b, "- Duration: %s\n", r.Duration)

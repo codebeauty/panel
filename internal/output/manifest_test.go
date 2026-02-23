@@ -58,10 +58,10 @@ func TestReadManifest(t *testing.T) {
 	})
 }
 
-func TestManifestResultPersonaField(t *testing.T) {
+func TestManifestResultExpertField(t *testing.T) {
 	m := &Manifest{
 		Results: []ManifestResult{
-			{ToolID: "claude", Status: "success", Persona: "security"},
+			{ToolID: "claude", Status: "success", Expert: "security"},
 			{ToolID: "gemini", Status: "success"},
 		},
 	}
@@ -69,14 +69,14 @@ func TestManifestResultPersonaField(t *testing.T) {
 	data, err := json.Marshal(m)
 	assert.NoError(t, err)
 
-	// Persona present when set
-	assert.Contains(t, string(data), `"persona":"security"`)
+	// Expert present when set
+	assert.Contains(t, string(data), `"expert":"security"`)
 
-	// Persona omitted when empty (omitempty)
+	// Expert omitted when empty (omitempty)
 	var parsed map[string]interface{}
 	json.Unmarshal(data, &parsed)
 	results := parsed["results"].([]interface{})
 	gemini := results[1].(map[string]interface{})
-	_, hasPersona := gemini["persona"]
-	assert.False(t, hasPersona, "empty persona should be omitted from JSON")
+	_, hasExpert := gemini["expert"]
+	assert.False(t, hasExpert, "empty expert should be omitted from JSON")
 }

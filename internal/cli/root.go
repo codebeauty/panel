@@ -21,7 +21,7 @@ func newRootCmd() *cobra.Command {
 	root.AddCommand(newSummaryCmd())
 	root.AddCommand(newConfigCmd())
 	root.AddCommand(newAgentCmd())
-	root.AddCommand(newPersonasCmd())
+	root.AddCommand(newExpertsCmd())
 
 	// Top-level aliases
 	addCmd := newToolsAddCmd()

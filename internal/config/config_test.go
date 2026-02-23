@@ -179,7 +179,7 @@ func TestLoadMergedNoProjectConfig(t *testing.T) {
 	assert.Equal(t, "./agents/panel", cfg.Defaults.OutputDir)
 }
 
-func TestToolConfigPersonaField(t *testing.T) {
+func TestToolConfigExpertField(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "config.json")
 
@@ -189,7 +189,7 @@ func TestToolConfigPersonaField(t *testing.T) {
 				"binary": "/usr/local/bin/claude",
 				"adapter": "claude",
 				"enabled": true,
-				"persona": "security"
+				"expert": "security"
 			}
 		}
 	}`
@@ -197,10 +197,10 @@ func TestToolConfigPersonaField(t *testing.T) {
 
 	cfg, err := LoadFromFile(cfgPath)
 	assert.NoError(t, err)
-	assert.Equal(t, "security", cfg.Tools["claude"].Persona)
+	assert.Equal(t, "security", cfg.Tools["claude"].Expert)
 }
 
-func TestToolConfigPersonaOmitEmpty(t *testing.T) {
+func TestToolConfigExpertOmitEmpty(t *testing.T) {
 	cfg := NewDefaults()
 	cfg.Tools["claude"] = ToolConfig{
 		Binary:  "/usr/local/bin/claude",
@@ -214,7 +214,7 @@ func TestToolConfigPersonaOmitEmpty(t *testing.T) {
 	assert.NoError(t, err)
 
 	data, _ := os.ReadFile(path)
-	assert.NotContains(t, string(data), "persona")
+	assert.NotContains(t, string(data), "expert")
 }
 
 func TestStricterReadOnly(t *testing.T) {

@@ -236,12 +236,12 @@ Some body text with enough words to count.
 	})
 }
 
-func TestBuildSummaryWithPersona(t *testing.T) {
+func TestBuildSummaryWithExpert(t *testing.T) {
 	manifest := &Manifest{
 		Prompt: "review this",
 		Config: ManifestConfig{ReadOnly: "bestEffort"},
 		Results: []ManifestResult{
-			{ToolID: "claude", Status: "success", Duration: "1m0s", OutputFile: "claude.md", Persona: "security"},
+			{ToolID: "claude", Status: "success", Duration: "1m0s", OutputFile: "claude.md", Expert: "security"},
 			{ToolID: "gemini", Status: "success", Duration: "2m0s", OutputFile: "gemini.md"},
 		},
 	}
@@ -251,8 +251,8 @@ func TestBuildSummaryWithPersona(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "gemini.md"), []byte("another response"), 0o600)
 
 	summary := BuildSummary(manifest, dir)
-	assert.Contains(t, summary, "Persona: security")
-	assert.NotContains(t, summary, "Persona: \n", "should not show persona line for tools without persona")
+	assert.Contains(t, summary, "Expert: security")
+	assert.NotContains(t, summary, "Expert: \n", "should not show expert line for tools without expert")
 }
 
 func TestWriteSummary(t *testing.T) {
