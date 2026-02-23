@@ -6,3 +6,4 @@ dist/
 agents/
 docs/plans
 .claude
+.worktrees
