@@ -21,6 +21,7 @@ import (
 	"github.com/codebeauty/panel/internal/config"
 	"github.com/codebeauty/panel/internal/gather"
 	"github.com/codebeauty/panel/internal/output"
+	"github.com/codebeauty/panel/internal/persona"
 	"github.com/codebeauty/panel/internal/runner"
 	"github.com/codebeauty/panel/internal/ui"
 )
@@ -36,6 +37,7 @@ func newRunCmd() *cobra.Command {
 		fileFlag    string
 		dryRun      bool
 		contextFlag string
+		personaFlag string
 	)
 
 	cmd := &cobra.Command{
@@ -105,6 +107,7 @@ func newRunCmd() *cobra.Command {
 			}
 
 			if dryRun {
+				personaIDs, _, pErr := resolveToolPersonas(tools, cfg, personaFlag)
 				params := adapter.RunParams{
 					Prompt:     prompt,
 					PromptFile: "<output>/prompt.md",
@@ -112,11 +115,14 @@ func newRunCmd() *cobra.Command {
 					ReadOnly:   adapter.ReadOnlyMode(ro),
 					Timeout:    time.Duration(cfg.Defaults.Timeout) * time.Second,
 				}
-				for _, tool := range tools {
+				for i, tool := range tools {
 					inv := tool.Adapter.BuildInvocation(params)
 					fmt.Fprintf(os.Stderr, "%s:\n  %s %s\n", tool.ID, inv.Binary, strings.Join(inv.Args, " "))
 					if inv.Stdin != "" {
 						fmt.Fprintf(os.Stderr, "  stdin: %d bytes\n", len(inv.Stdin))
+					}
+					if pErr == nil && personaIDs[i] != "" {
+						fmt.Fprintf(os.Stderr, "  persona: %s\n", personaIDs[i])
 					}
 				}
 				return nil
@@ -155,19 +161,61 @@ func newRunCmd() *cobra.Command {
 			prog.Start()
 			defer prog.Stop()
 
-			results := r.Run(ctx, tools, adapter.RunParams{
+			// Resolve personas
+			personaIDs, personaContents, err := resolveToolPersonas(tools, cfg, personaFlag)
+			if err != nil {
+				return err
+			}
+
+			// Build per-tool params
+			baseParams := adapter.RunParams{
 				Prompt:     prompt,
 				PromptFile: promptFilePath,
 				WorkDir:    mustGetwd(),
 				ReadOnly:   adapter.ReadOnlyMode(ro),
 				Timeout:    time.Duration(cfg.Defaults.Timeout) * time.Second,
-			}, runDir)
+			}
+
+			hasPersona := false
+			for _, c := range personaContents {
+				if c != "" {
+					hasPersona = true
+					break
+				}
+			}
+
+			var results []runner.Result
+			if !hasPersona {
+				results = r.Run(ctx, tools, baseParams, runDir)
+			} else {
+				perToolParams := make([]adapter.RunParams, len(tools))
+				for i, tool := range tools {
+					p := baseParams
+					if personaContents[i] != "" {
+						p.Prompt = persona.InjectPersona(personaContents[i], prompt)
+						toolPromptPath := filepath.Join(runDir, tool.ID+".prompt.md")
+						if err := os.WriteFile(toolPromptPath, []byte(p.Prompt), 0o600); err != nil {
+							return fmt.Errorf("writing persona prompt for %s: %w", tool.ID, err)
+						}
+						p.PromptFile = toolPromptPath
+					}
+					perToolParams[i] = p
+				}
+				results = r.RunWithParams(ctx, tools, perToolParams, runDir)
+			}
 
 			manifest := output.BuildManifest(prompt, startedAt, results, output.ManifestConfig{
 				ReadOnly:    string(ro),
 				Timeout:     cfg.Defaults.Timeout,
 				MaxParallel: cfg.Defaults.MaxParallel,
 			})
+
+			// Record personas in manifest
+			for i, pid := range personaIDs {
+				if pid != "" && i < len(manifest.Results) {
+					manifest.Results[i].Persona = pid
+				}
+			}
 			if err := output.WriteManifest(runDir, manifest); err != nil {
 				fmt.Fprintf(os.Stderr, "warning: failed to write manifest: %v\n", err)
 			}
@@ -197,6 +245,7 @@ func newRunCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&fileFlag, "file", "f", "", "Read prompt from file")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show invocations without executing")
 	cmd.Flags().StringVarP(&contextFlag, "context", "c", "", "Gather context from paths (comma-separated, or \".\" for git diff)")
+	cmd.Flags().StringVarP(&personaFlag, "persona", "P", "", "Persona ID to apply to all tools")
 
 	return cmd
 }
@@ -354,4 +403,31 @@ func printSummary(results []runner.Result, runDir string) {
 			icon, r.ToolID, r.Status, r.ExitCode, r.Duration.Round(time.Millisecond))
 	}
 	fmt.Fprintf(os.Stderr, "\nOutput: %s\n", runDir)
+}
+
+// resolveToolPersonas resolves persona content for each tool.
+// Returns parallel slices of persona IDs and content (empty string = no persona).
+func resolveToolPersonas(tools []runner.Tool, cfg *config.Config, personaFlag string) (ids []string, contents []string, err error) {
+	personaDir := persona.PersonasDir()
+	ids = make([]string, len(tools))
+	contents = make([]string, len(tools))
+
+	for i, tool := range tools {
+		pid := personaFlag // CLI flag wins
+		if pid == "" {
+			if tc, ok := cfg.Tools[tool.ID]; ok {
+				pid = tc.Persona
+			}
+		}
+		if pid == "" {
+			continue
+		}
+		content, err := persona.Load(pid, personaDir)
+		if err != nil {
+			return nil, nil, fmt.Errorf("loading persona %q for %s: %w", pid, tool.ID, err)
+		}
+		ids[i] = pid
+		contents[i] = content
+	}
+	return ids, contents, nil
 }
