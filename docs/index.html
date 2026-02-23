@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel — A panel of AI experts</title>
+  <meta name="description" content="Fan out prompts to Claude, Gemini, Codex, and more — all at once, all independently. A second opinion is good. A panel of experts is better.">
+  <meta property="og:title" content="Panel — A panel of AI experts">
+  <meta property="og:description" content="Fan out prompts to Claude, Gemini, Codex, and more — all at once, all independently.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link rel="preconnect" href="https://fonts.bunny.net">
+  <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,500|instrument-serif:400i" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --radius: 32px;
+      --red: #fc5130;
+      --blue: #30bced;
+      --green: #6cc46f;
+      --black: #0a0a0a;
+      --gray-50: #fafafa;
+      --gray-100: #f5f5f5;
+      --gray-200: #e5e5e5;
+      --gray-400: #a3a3a3;
+      --gray-500: #737373;
+      --gray-600: #525252;
+      --gray-700: #404040;
+      --gray-800: #262626;
+      --gray-900: #171717;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 80px 0 48px;
+    }
+
+    .hero svg {
+      width: 200px;
+      height: auto;
+      margin-bottom: 32px;
+    }
+
+    .hero h1 {
+      font-size: 1.1rem;
+      font-weight: 400;
+      color: var(--gray-500);
+      letter-spacing: 0.04em;
+      margin-bottom: 16px;
+    }
+
+    .hero .tagline {
+      font-family: "Instrument Serif", serif;
+      font-style: italic;
+      font-size: 4rem;
+      font-weight: 400;
+
+      line-height: 1.2;
+      color: var(--gray-900);
+      max-width: 660px;
+      margin: 0 auto 16px;
+    }
+
+    .hero .subtitle {
+      font-size: 1.125rem;
+      color: var(--gray-500);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* Install */
+    .install {
+      padding: 32px 0;
+      text-align: center;
+    }
+
+    .install-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--gray-900);
+      color: #e5e5e5;
+      padding: 14px 24px;
+      border-radius: var(--radius);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      position: relative;
+    }
+
+    .install-box:hover {
+      background: var(--gray-800);
+    }
+
+    .install-box .prompt {
+      color: var(--gray-400);
+      user-select: none;
+    }
+
+    .install-box .copy-hint {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      opacity: 0;
+      transition: opacity 0.15s;
+      position: absolute;
+      right: -80px;
+    }
+
+    .install-box:hover .copy-hint {
+      opacity: 1;
+    }
+
+    .install-box.copied .copy-hint {
+      opacity: 1;
+      color: var(--green);
+    }
+
+    .install-note {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: var(--gray-400);
+    }
+
+    /* Sections */
+    section {
+      padding: 48px 0;
+    }
+
+    section h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: var(--gray-900);
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--gray-900);
+      color: #e5e5e5;
+      padding: 20px 24px;
+      border-radius: var(--radius);
+      overflow-x: auto;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.875rem;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    pre .comment { color: var(--gray-500); }
+    pre .cmd { color: var(--green); }
+    pre .flag { color: var(--blue); }
+    pre .string { color: var(--red); }
+
+    /* Features */
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .feature {
+      padding: 24px;
+      background: white;
+      border-radius: var(--radius);
+      border: 1px solid var(--gray-200);
+    }
+
+    .feature-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: calc(var(--radius) * 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+    }
+
+    .feature h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .feature p {
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      line-height: 1.5;
+    }
+
+    /* Comparison */
+    .comparison {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .comparison th,
+    .comparison td {
+      text-align: left;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .comparison th {
+      font-weight: 600;
+      color: var(--gray-500);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .comparison td:first-child {
+      color: var(--gray-500);
+    }
+
+    .comparison .highlight {
+      color: var(--gray-900);
+      font-weight: 600;
+    }
+
+    /* Output structure */
+    .tree {
+      background: var(--gray-900);
+      color: var(--gray-400);
+      padding: 20px 24px;
+      border-radius: var(--radius);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+    }
+
+    .tree .dir { color: var(--blue); }
+    .tree .file { color: #e5e5e5; }
+    .tree .desc { color: var(--gray-500); }
+
+    /* Footer */
+    footer {
+      padding: 48px 0;
+      text-align: center;
+      border-top: 1px solid var(--gray-200);
+      margin-top: 24px;
+    }
+
+    footer a {
+      color: var(--gray-500);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.15s;
+    }
+
+    footer a:hover {
+      color: var(--gray-900);
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 16px;
+    }
+
+    .footer-credit {
+      font-size: 0.8rem;
+      color: var(--gray-400);
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .hero { padding: 48px 0 32px; }
+      .hero .tagline { font-size: 1.5rem; }
+      .features { grid-template-columns: 1fr; }
+      .install-box .copy-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <svg width="384px" height="219px" viewBox="0 0 384 219" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="none" fill="none" fill-rule="evenodd" stroke-width="1">
+        <g transform="translate(40, 40)">
+          <path d="M155.094,109.281689 L164.479124,125.537525 C165.041212,126.511091 165.575299,127.424292 166.084656,128.282594 L77.5,128.282032 C72.2532949,128.282032 68,124.028737 68,118.782032 C68,113.535327 72.2532949,109.282032 77.5,109.282032 L155.094,109.281689 Z M138.725,76.2816886 L138.777274,76.5365208 C139.788769,81.2789828 141.311379,85.3289924 147.012856,95.2816874 L63.5,95.2820323 C58.2532949,95.2820323 54,91.0287374 54,85.7820323 C54,80.5353272 58.2532949,76.2820323 63.5,76.2820323 L138.725,76.2816886 Z M147.012412,43.2831536 C141.3113,53.2352829 139.788742,57.2852051 138.777274,62.0275438 C138.759129,62.1126197 138.7413,62.1976555 138.723787,62.2826525 L34.5,62.2820323 C29.2532949,62.2820323 25,58.0287374 25,52.7820323 C25,47.5353272 29.2532949,43.2820323 34.5,43.2820323 Z M166.085121,10.2806886 C165.575624,11.1392173 165.041383,12.0526778 164.479124,13.0265398 L155.093,29.2816886 L71.5,29.2820323 C66.2532949,29.2820323 62,25.0287374 62,19.7820323 C62,14.5353272 66.2532949,10.2820323 71.5,10.2820323 Z" fill="#0a0a0a"></path>
+          <path d="M261.71214,1.45769584 C264.798439,2.45811901 267.471987,4.00169268 269.881529,6.17429468 C272.29107,8.34689668 274.111761,10.5858812 278.091097,17.4782927 L297.908903,51.8037396 C301.888239,58.6961511 302.91691,61.3924083 303.593668,64.5654335 C304.270426,67.7384586 304.270426,70.825606 303.593668,73.9986311 C302.91691,77.1716563 301.888239,79.8679135 297.908903,86.760325 L278.091097,121.085772 C274.111761,127.978183 272.29107,130.217168 269.881529,132.38977 C267.471987,134.562372 264.798439,136.105946 261.71214,137.106369 C258.62584,138.106792 255.776477,138.564065 247.817806,138.564065 L208.182194,138.564065 C200.223523,138.564065 197.37416,138.106792 194.28786,137.106369 C191.201561,136.105946 188.528013,134.562372 186.118471,132.38977 C186.020123,132.301092 185.922755,132.212304 185.826182,132.123093 L185.538657,131.853882 C183.397289,129.82061 181.563395,127.415538 177.908903,121.085772 L158.091097,86.760325 C154.111761,79.8679135 153.08309,77.1716563 152.406332,73.9986311 C151.729574,70.825606 151.729574,67.7384586 152.406332,64.5654335 C153.08309,61.3924083 154.111761,58.6961511 158.091097,51.8037396 L177.908903,17.4782927 C181.563395,11.148527 183.397289,8.7434551 185.538657,6.71018289 L185.826182,6.44097127 C185.922755,6.35176054 186.020123,6.26297231 186.118471,6.17429468 C188.528013,4.00169268 191.201561,2.45811901 194.28786,1.45769584 C197.311174,0.477689469 200.107123,0.0188904091 207.701267,0.000572082723 L247.817806,-3.55271368e-14 C255.776477,-3.55271368e-14 258.62584,0.45727267 261.71214,1.45769584 Z M248.5,101.282032 C243.253295,101.282032 239,105.535327 239,110.782032 C239,116.028737 243.253295,120.282032 248.5,120.282032 C253.746705,120.282032 258,116.028737 258,110.782032 C258,105.535327 253.746705,101.282032 248.5,101.282032 Z M204.5,79.2820323 C199.253295,79.2820323 195,83.5353272 195,88.7820323 C195,94.0287374 199.253295,98.2820323 204.5,98.2820323 C209.746705,98.2820323 214,94.0287374 214,88.7820323 C214,83.5353272 209.746705,79.2820323 204.5,79.2820323 Z M234.5,56.2820323 C229.253295,56.2820323 225,60.5353272 225,65.7820323 C225,71.0287374 229.253295,75.2820323 234.5,75.2820323 C239.746705,75.2820323 244,71.0287374 244,65.7820323 C244,60.5353272 239.746705,56.2820323 234.5,56.2820323 Z M223.5,18.2820323 C218.253295,18.2820323 214,22.5353272 214,27.7820323 C214,33.0287374 218.253295,37.2820323 223.5,37.2820323 C228.746705,37.2820323 233,33.0287374 233,27.7820323 C233,22.5353272 228.746705,18.2820323 223.5,18.2820323 Z" fill="#fc5130"></path>
+          <path d="M9.5,42.2820323 C14.7467051,42.2820323 19,46.5353272 19,51.7820323 C19,57.0287374 14.7467051,61.2820323 9.5,61.2820323 C4.25329488,61.2820323 0,57.0287374 0,51.7820323 C0,46.5353272 4.25329488,42.2820323 9.5,42.2820323 Z" fill="#30bced"></path>
+          <path d="M39.5,76.2820323 C44.7467051,76.2820323 49,80.5353272 49,85.7820323 C49,91.0287374 44.7467051,95.2820323 39.5,95.2820323 C34.2532949,95.2820323 30,91.0287374 30,85.7820323 C30,80.5353272 34.2532949,76.2820323 39.5,76.2820323 Z" fill="#0a0a0a"></path>
+          <path d="M52.5,109.282032 C57.7467051,109.282032 62,113.535327 62,118.782032 C62,124.028737 57.7467051,128.282032 52.5,128.282032 C47.2532949,128.282032 43,124.028737 43,118.782032 C43,113.535327 47.2532949,109.282032 52.5,109.282032 Z" fill="#6cc46f"></path>
+          <path d="M46.5,10.2820323 C51.7467051,10.2820323 56,14.5353272 56,19.7820323 C56,25.0287374 51.7467051,29.2820323 46.5,29.2820323 C41.2532949,29.2820323 37,25.0287374 37,19.7820323 C37,14.5353272 41.2532949,10.2820323 46.5,10.2820323 Z" fill="#0a0a0a"></path>
+        </g>
+      </g>
+    </svg>
+    <h1>Panel</h1>
+    <p class="tagline">A second opinion is good.<br>A panel of experts is better.</p>
+    <p class="subtitle">Fan out prompts to Claude, Gemini, Codex, and more &mdash; all at once, all independently.</p>
+  </div>
+
+  <!-- Install -->
+  <div class="install">
+    <div class="install-box" onclick="copyInstall(this)">
+      <span class="prompt">$</span>
+      <span>brew install codebeauty/tap/panel</span>
+      <span class="copy-hint">click to copy</span>
+    </div>
+    <p class="install-note">macOS only (Apple Silicon &amp; Intel) &middot; No runtime dependencies</p>
+  </div>
+
+  <!-- Quick Start -->
+  <section>
+    <h2>Quick start</h2>
+    <pre><span class="comment"># Discover installed AI CLIs and create config</span>
+<span class="cmd">panel init</span>
+
+<span class="comment"># Send a prompt to all enabled tools</span>
+<span class="cmd">panel run</span> <span class="string">"review this authentication flow for security issues"</span>
+
+<span class="comment"># Send to specific tools</span>
+<span class="cmd">panel run</span> <span class="flag">-t</span> claude-opus,gemini-3-pro <span class="string">"is this migration safe?"</span>
+
+<span class="comment"># Use a named group</span>
+<span class="cmd">panel run</span> <span class="flag">-f</span> prompt.md <span class="flag">--group</span> smart
+
+<span class="comment"># Pipe from stdin</span>
+echo <span class="string">"explain this error"</span> | <span class="cmd">panel run</span></pre>
+  </section>
+
+  <!-- Features -->
+  <section>
+    <h2>Features</h2>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon" style="background: #fc51301a; color: var(--red);"><i data-lucide="columns-2" size="20"></i></div>
+        <h3>Parallel dispatch</h3>
+        <p>Run multiple AI CLIs simultaneously with configurable concurrency limits.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background: #30bced1a; color: var(--blue);"><i data-lucide="shield-check" size="20"></i></div>
+        <h3>Read-only mode</h3>
+        <p>Enforced, best-effort, or none. Each adapter uses the right flags for its CLI.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background: #6cc46f1a; color: var(--green);"><i data-lucide="folder-output" size="20"></i></div>
+        <h3>Structured output</h3>
+        <p>Each run produces a directory with responses, stderr, prompt, and a JSON manifest.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background: #0a0a0a1a; color: var(--gray-700);"><i data-lucide="wand-sparkles" size="20"></i></div>
+        <h3>Zero config start</h3>
+        <p><code>panel init</code> auto-discovers installed CLIs and writes a working config.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Output -->
+  <section>
+    <h2>Output structure</h2>
+    <div class="tree">
+<span class="dir">agents/panel/</span>
+<span class="dir">  review-auth-flow-1770676882/</span>
+    <span class="file">prompt.md</span>            <span class="desc"># original prompt</span>
+    <span class="file">run.json</span>             <span class="desc"># manifest with metadata</span>
+    <span class="file">summary.md</span>           <span class="desc"># heuristic summary</span>
+    <span class="file">claude-opus.md</span>       <span class="desc"># Claude's response</span>
+    <span class="file">gemini-3-pro.md</span>      <span class="desc"># Gemini's response</span>
+    </div>
+  </section>
+
+  <!-- Comparison -->
+  <section>
+    <h2>Why panel?</h2>
+    <p style="color: var(--gray-500); margin-bottom: 20px;">
+      Inspired by <a href="https://github.com/aarondfrancis/counselors" style="color: var(--gray-700); text-decoration: underline;">counselors</a> by Aaron Francis, rewritten in Go.
+    </p>
+    <table class="comparison">
+      <thead>
+        <tr>
+          <th></th>
+          <th>panel</th>
+          <th>counselors</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Runtime deps</td>
+          <td class="highlight">None</td>
+          <td>Node.js 20+</td>
+        </tr>
+        <tr>
+          <td>Install size</td>
+          <td class="highlight">~3 MB</td>
+          <td>~102 MB</td>
+        </tr>
+        <tr>
+          <td>Startup</td>
+          <td class="highlight">~4 ms</td>
+          <td>~120 ms</td>
+        </tr>
+        <tr>
+          <td>Peak memory</td>
+          <td class="highlight">~5 MB</td>
+          <td>~65 MB</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="color: var(--gray-400); font-size: 0.8rem; margin-top: 12px;">Both dispatch to the same AI CLIs — response times depend on the AI provider, not the tool.</p>
+  </section>
+
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/codebeauty/panel">GitHub</a>
+      <a href="https://github.com/codebeauty/panel/releases">Releases</a>
+      <a href="https://github.com/codebeauty/panel/blob/main/README.md">Docs</a>
+    </div>
+    <p class="footer-credit">Built out of curiosity by <a href="https://github.com/codebeauty">Mathias Bachmann</a></p>
+  </div>
+</footer>
+
+<script>
+lucide.createIcons();
+function copyInstall(el) {
+  navigator.clipboard.writeText('brew install codebeauty/tap/panel');
+  el.classList.add('copied');
+  el.querySelector('.copy-hint').textContent = 'copied!';
+  setTimeout(() => {
+    el.classList.remove('copied');
+    el.querySelector('.copy-hint').textContent = 'click to copy';
+  }, 2000);
+}
+</script>
+
+</body>
+</html>
