@@ -10,6 +10,7 @@ import (
 
 	"github.com/codebeauty/panel/internal/adapter"
 	"github.com/codebeauty/panel/internal/config"
+	"github.com/codebeauty/panel/internal/persona"
 )
 
 var knownTools = []struct {
@@ -101,6 +102,21 @@ func newInitCmd() *cobra.Command {
 
 			fmt.Fprintf(os.Stderr, "\nConfig written to: %s\n", cfgPath)
 			fmt.Fprintf(os.Stderr, "%d tool(s) configured\n", len(cfg.Tools))
+
+			// Sync built-in personas
+			personaDir := persona.PersonasDir()
+			var diffFn persona.DiffFunc
+			auto, _ := cmd.Flags().GetBool("auto")
+			if !auto {
+				diffFn = syncDiffPrompt
+			}
+			written, pErr := persona.SyncBuiltins(personaDir, diffFn)
+			if pErr != nil {
+				fmt.Fprintf(os.Stderr, "warning: failed to sync personas: %v\n", pErr)
+			} else if written > 0 {
+				fmt.Fprintf(os.Stderr, "%d persona(s) installed to %s\n", written, personaDir)
+			}
+
 			return nil
 		},
 	}
