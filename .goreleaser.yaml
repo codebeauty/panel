@@ -43,6 +43,21 @@ checksum:
 changelog:
   sort: asc
 
+brews:
+  - name: panel
+    repository:
+      owner: codebeauty
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/codebeauty/panel"
+    description: "A second opinion is good. A panel of experts is better."
+    license: "MIT"
+    skip_upload: auto
+    commit_author:
+      name: goreleaser
+      email: goreleaser@codebeauty.com
+
 homebrew_casks:
   - name: panel
     repository:
@@ -51,7 +66,7 @@ homebrew_casks:
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     directory: Casks
     homepage: "https://github.com/codebeauty/panel"
-    description: "Fan out prompts to multiple AI coding agents in parallel"
+    description: "A second opinion is good. A panel of experts is better."
     license: "MIT"
     binaries:
       - panel
