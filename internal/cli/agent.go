@@ -51,14 +51,62 @@ Add a custom command or use panel directly in prompts:
    # Include file context
    panel run "Review these changes" -c . --json
 
+   # Apply an expert persona to all tools
+   panel run "Review this code" -E security --json
+
+   # Use a named team (cross-product: every tool × every expert)
+   panel run "Review this code" -T security-focused --json
+
+## Experts
+
+Experts are role presets that shape how each agent responds. When an expert
+is applied, its role definition is prepended to the prompt so the agent
+adopts that persona.
+
+   # List available experts
+   panel experts list
+
+   # Show an expert's role definition
+   panel experts show security
+
+   # Apply one expert to all tools (--expert / -E)
+   panel run "Review auth flow" -E security --json
+
+Built-in experts: security, performance, architect, reviewer, devil, product.
+Create custom experts with: panel experts create <id>
+
+## Teams
+
+Teams are named groups of experts. When you use --team / -T, panel creates
+a cross-product: every selected tool runs once per expert in the team.
+For example, 3 tools × 2 experts = 6 parallel runs.
+
+   # List configured teams
+   panel teams list
+
+   # Create a team
+   panel teams create code-quality --experts reviewer,security,performance
+
+   # Use a team (cross-product dispatch)
+   panel run "Review this PR" -T code-quality --json
+
+   # Combine with tool/group selection
+   panel run "Review this PR" --tools claude,codex -T code-quality --json
+
+Note: --expert and --team are mutually exclusive.
+
+The manifest (run.json) includes the expert ID for each result entry,
+and composite tool IDs use the format {tool}@{expert} (e.g. claude@security).
+
 ## Output Structure
 
 Panel writes results to the output directory (default: ./agents/panel/):
-  - prompt.md    — the original prompt
-  - {tool}.md    — each tool's response
-  - {tool}.stderr — each tool's stderr
-  - run.json     — manifest with metadata and costs
-  - summary.md   — human-readable summary
+  - prompt.md            — the original prompt
+  - {tool}.md            — each tool's response
+  - {tool}.stderr        — each tool's stderr
+  - {tool}.prompt.md     — per-tool prompt (when experts are used)
+  - run.json             — manifest with metadata, costs, and expert IDs
+  - summary.md           — human-readable summary
 
 The --json flag outputs the manifest to stdout for programmatic parsing.
 `

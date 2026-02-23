@@ -47,18 +47,23 @@ Parse ` + "`$ARGUMENTS`" + ` to understand what the user wants reviewed. Then id
 
 ## Phase 2: Agent Selection
 
-1. **Discover available agents and groups** by running via Bash:
+1. **Discover available agents, groups, experts, and teams** by running via Bash:
    ` + "```bash" + `
    panel tools list
    panel groups list
+   panel experts list
+   panel teams list
    ` + "```" + `
-   The first command lists all configured agents with their IDs and binaries. The second lists any configured **groups** (predefined sets of tool IDs).
+   - ` + "`tools list`" + `: configured agents with IDs and binaries
+   - ` + "`groups list`" + `: predefined sets of tool IDs
+   - ` + "`experts list`" + `: available expert personas (e.g. security, performance, architect)
+   - ` + "`teams list`" + `: named groups of experts for cross-product dispatch
 
-2. **MANDATORY: Print the full agent list and group list, then ask the user which to use.**
+2. **MANDATORY: Print the full output of all four commands, then ask the user which to use.**
 
-   **Always print the full ` + "`panel tools list`" + ` output and ` + "`panel groups list`" + ` output as inline text** (not inside AskUserQuestion). Just show the raw output so the user sees every tool/group. Do NOT reformat or abbreviate it.
+   **Always print the full output** of all commands as inline text (not inside AskUserQuestion). Just show the raw output so the user sees every tool/group/expert/team. Do NOT reformat or abbreviate it.
 
-   Then ask the user to pick:
+   Then ask the user to pick **tools** (or a group):
 
    **If 4 or fewer agents**: Use AskUserQuestion with ` + "`multiSelect: true`" + `, one option per agent.
 
@@ -70,11 +75,25 @@ Parse ` + "`$ARGUMENTS`" + ` to understand what the user wants reviewed. Then id
    If groups exist, you MAY offer group options (e.g. "Group: smart"), but you MUST expand them to the underlying tool IDs and confirm that expanded list with the user before dispatch. This avoids silently omitting or adding agents.
    If the user says something like "use the smart group", you MUST look up that group in the configured groups list (` + "`panel groups list`" + `). If it exists, use it (via ` + "`--group smart`" + ` or by expanding to tool IDs) and confirm the expanded tool list before dispatch. If it does not exist, tell the user and ask them to choose again — do not guess.
 
-3. Wait for the user's selection before proceeding.
+3. **Ask about experts/teams.** After tool selection, ask the user if they want to apply an expert persona or team:
 
-4. **MANDATORY: Confirm the selection before continuing.** After the user picks agents, echo back the exact list you will dispatch to:
+   - **Single expert** (` + "`--expert / -E`" + `): One expert persona applied to all tools. Example: ` + "`-E security`" + ` makes every agent adopt a security reviewer role.
+   - **Team** (` + "`--team / -T`" + `): Cross-product dispatch — every tool runs once per expert in the team. Example: 3 tools × 2 experts in team = 6 parallel runs. Composite IDs like ` + "`claude@security`" + `.
+   - **None**: No expert, standard dispatch.
+
+   ` + "`--expert`" + ` and ` + "`--team`" + ` are mutually exclusive.
+
+   If the user mentions an expert or team, confirm it exists in the listed output. If teams produce a large cross-product (>8 runs), warn the user before proceeding.
+
+4. Wait for the user's selection before proceeding.
+
+5. **MANDATORY: Confirm the selection before continuing.** After the user picks agents and optionally an expert/team, echo back the exact dispatch plan:
 
    > Dispatching to: **claude-opus**, **codex-5.3-high**, **gemini-pro**
+   > Expert: **security**
+
+   Or for teams:
+   > Dispatching to: **claude-opus@security**, **claude-opus@performance**, **codex-5.3-high@security**, **codex-5.3-high@performance** (2 tools × 2 experts)
 
    Then ask the user to confirm (e.g. "Look good?") before proceeding to Phase 3. This prevents silent tool omissions. If the user corrects the list, update your selection accordingly.
 
@@ -133,7 +152,7 @@ You are providing an independent review. Be critical and thorough.
 
 ## Phase 4: Dispatch
 
-Run panel via Bash with the prompt file (using the absolute path from Phase 3), passing the user's selected agents:
+Run panel via Bash with the prompt file (using the absolute path from Phase 3), passing the user's selected agents and optional expert/team:
 
 ` + "```bash" + `
 panel run -f <cwd>/<outputDir>/TIMESTAMP-[slug]/prompt.md --tools [comma-separated-tool-ids] --json
@@ -142,10 +161,13 @@ panel run -f <cwd>/<outputDir>/TIMESTAMP-[slug]/prompt.md --tools [comma-separat
 Examples:
 - ` + "`--tools claude-opus,codex-5.3-high,gemini-3-pro`" + `
 - ` + "`--group smart`" + ` (uses the configured group)
+- ` + "`--tools claude-opus,codex-5.3-high -E security`" + ` (apply expert to all tools)
+- ` + "`--tools claude-opus,codex-5.3-high -T code-quality`" + ` (cross-product with team)
+- ` + "`--tools claude-opus,codex-5.3-high -T code-quality --yes`" + ` (skip confirmation for large cross-products)
 
 Use ` + "`timeout: 600000`" + ` (10 minutes). Panel dispatches to the selected agents in parallel and writes results to the output directory shown in the JSON output.
 
-**Important**: Use ` + "`-f`" + ` (file mode) so the prompt is sent as-is without wrapping. Use ` + "`--json`" + ` to get structured output for parsing.
+**Important**: Use ` + "`-f`" + ` (file mode) so the prompt is sent as-is without wrapping. Use ` + "`--json`" + ` to get structured output for parsing. Add ` + "`--yes`" + ` when using teams to skip the interactive confirmation prompt (required for non-TTY agent context).
 
 **Timing**: Sessions commonly take more than 10 minutes. Panel prints each tool's progress status. If a run seems stuck, you can check tool processes in the output.
 
@@ -153,8 +175,8 @@ Use ` + "`timeout: 600000`" + ` (10 minutes). Panel dispatches to the selected a
 
 ## Phase 5: Read Results
 
-1. **Parse the JSON output** from stdout — it contains the run manifest with status, duration, word count, and output file paths for each agent
-2. **Read each agent's response** from the ` + "`.md`" + ` output file in the run directory
+1. **Parse the JSON output** from stdout — it contains the run manifest with status, duration, word count, and output file paths for each agent. Each result entry includes an ` + "`expert`" + ` field when an expert was used.
+2. **Read each agent's response** from the ` + "`.md`" + ` output file in the run directory. When experts are used, tool IDs are composite (e.g. ` + "`claude@security.md`" + `).
 3. **Check ` + "`.stderr`" + ` files** for any agent that failed or returned empty output
 4. **Skip empty or error-only reports** — note which agents failed
 
@@ -167,7 +189,7 @@ Combine all agent responses into a synthesis:
 ` + "```markdown" + `
 ## Panel Review
 
-**Agents consulted:** [list of agents that responded]
+**Agents consulted:** [list of agents that responded, noting expert personas if used]
 
 **Consensus:** [What most agents agree on — key takeaways]
 
@@ -182,6 +204,8 @@ Combine all agent responses into a synthesis:
 ---
 Reports saved to: [output directory from manifest]
 ` + "```" + `
+
+When experts were used, group insights by expert perspective (e.g. "Security expert findings" vs "Performance expert findings") to help the user see how each perspective contributed.
 
 Present this synthesis to the user. Be concise — the individual reports are saved for deep reading.
 
