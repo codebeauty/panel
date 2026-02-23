@@ -13,7 +13,13 @@ Inspired by [counselors](https://github.com/aarondfrancis/counselors) by [Aaron 
 ### Homebrew (recommended)
 
 ```bash
-brew install codebeauty/homebrew-tap/panel
+brew install codebeauty/tap/panel
+```
+
+Or as a cask:
+
+```bash
+brew install --cask codebeauty/tap/panel
 ```
 
 > **Note:** for now panel is macOS only (Apple Silicon and Intel).
