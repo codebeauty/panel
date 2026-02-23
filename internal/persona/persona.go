@@ -2,8 +2,13 @@ package persona
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
+
+	"github.com/codebeauty/panel/internal/config"
 )
 
 var validPersonaID = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
@@ -14,6 +19,53 @@ func ValidatePersonaID(id string) error {
 		return fmt.Errorf("invalid persona ID %q: must match [a-zA-Z0-9._-]+", id)
 	}
 	return nil
+}
+
+// PersonasDir returns the path to the personas directory,
+// derived from the global config directory.
+func PersonasDir() string {
+	return filepath.Join(config.GlobalConfigDir(), "personas")
+}
+
+// Load reads a persona file by ID from the given directory.
+// Validates the ID to prevent path traversal.
+func Load(id, dir string) (string, error) {
+	if err := ValidatePersonaID(id); err != nil {
+		return "", err
+	}
+	path := filepath.Join(dir, id+".md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("persona %q not found: %w", id, err)
+	}
+	content := string(data)
+	if strings.TrimSpace(content) == "" {
+		return "", fmt.Errorf("persona %q is empty", id)
+	}
+	return content, nil
+}
+
+// List returns sorted persona IDs (filenames without .md) from the directory.
+func List(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var ids []string
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
+			continue
+		}
+		if strings.HasSuffix(e.Name(), ".backup.md") {
+			continue
+		}
+		ids = append(ids, strings.TrimSuffix(e.Name(), ".md"))
+	}
+	sort.Strings(ids)
+	return ids, nil
 }
 
 // BuiltinIDs returns the sorted list of built-in persona IDs.
