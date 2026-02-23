@@ -1,6 +1,7 @@
 package output
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -55,4 +56,17 @@ func TestReadManifest(t *testing.T) {
 		_, err = ReadManifest(dir)
 		assert.Error(t, err)
 	})
+}
+
+func TestManifestResultPersonaField(t *testing.T) {
+	m := &Manifest{
+		Results: []ManifestResult{
+			{ToolID: "claude", Status: "success", Persona: "security"},
+			{ToolID: "gemini", Status: "success"},
+		},
+	}
+
+	data, err := json.Marshal(m)
+	assert.NoError(t, err)
+	assert.Contains(t, string(data), `"persona":"security"`)
 }

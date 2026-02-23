@@ -36,6 +36,7 @@ type ManifestResult struct {
 	OutputFile string      `json:"outputFile"`
 	StderrFile string      `json:"stderrFile"`
 	Cost       *runner.Cost `json:"cost,omitempty"`
+	Persona    string       `json:"persona,omitempty"`
 }
 
 // ReadManifest reads and parses run.json from the given directory.
