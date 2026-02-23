@@ -19,7 +19,7 @@ import (
 )
 
 // runTUI launches the BubbleTea TUI for `panel run`.
-func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadOnlyMode, expertFlag string, preSelected bool) error {
+func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadOnlyMode, expertFlag string, teamFlag string, preSelected bool) error {
 	// Build adapter name map for display
 	adapters := make(map[string]string, len(toolIDs))
 	for _, id := range toolIDs {
@@ -30,7 +30,7 @@ func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadO
 
 	// Determine if we should skip phases
 	skipSelect := preSelected // tools were pre-resolved via --tools/--group
-	skipExpert := expertFlag != ""
+	skipExpert := expertFlag != "" || teamFlag != ""
 
 	// Load available experts
 	var expertIDs []string
@@ -62,7 +62,7 @@ func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadO
 	var program *tea.Program
 
 	dispatch := func(ctx context.Context, selectedToolIDs []string, selectedExpert string, _ *tea.Program) {
-		err := executeTUIRun(ctx, program, cfg, prompt, selectedToolIDs, ro, selectedExpert)
+		err := executeTUIRun(ctx, program, cfg, prompt, selectedToolIDs, ro, selectedExpert, teamFlag)
 		if err != nil {
 			program.Send(tui.ErrorMsg{Err: err})
 		}
@@ -87,8 +87,10 @@ func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadO
 }
 
 // executeTUIRun handles the actual tool dispatch, sending progress messages to BubbleTea.
-func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config, prompt string, toolIDs []string, ro config.ReadOnlyMode, expertFlag string) error {
-	toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
+func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config, prompt string, toolIDs []string, ro config.ReadOnlyMode, expertFlag string, teamFlag string) error {
+	if teamFlag == "" {
+		toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
+	}
 
 	tools, err := buildTools(cfg, toolIDs)
 	if err != nil {
@@ -120,9 +122,18 @@ func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config
 	})
 
 	// Resolve experts
-	expertIDs, expertContents, err := resolveToolExperts(tools, cfg, expertFlag)
-	if err != nil {
-		return err
+	var expertIDs []string
+	var expertContents []string
+	if teamFlag != "" {
+		expertIDs, expertContents, err = resolveTeamExperts(toolIDs, expert.Dir())
+		if err != nil {
+			return err
+		}
+	} else {
+		expertIDs, expertContents, err = resolveToolExperts(tools, cfg, expertFlag)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Build per-tool params

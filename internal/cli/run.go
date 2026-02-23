@@ -39,6 +39,8 @@ func newRunCmd() *cobra.Command {
 		dryRun      bool
 		contextFlag string
 		expertFlag  string
+		teamFlag    string
+		yesFlag     bool
 	)
 
 	cmd := &cobra.Command{
@@ -49,6 +51,10 @@ func newRunCmd() *cobra.Command {
 			cfg, err := config.LoadMerged(mustGetwd())
 			if err != nil {
 				return fmt.Errorf("loading config: %w", err)
+			}
+
+			if teamFlag != "" && expertFlag != "" {
+				return fmt.Errorf("--team and --expert are mutually exclusive")
 			}
 
 			prompt, err := resolvePrompt(fileFlag, args)
@@ -93,9 +99,17 @@ func newRunCmd() *cobra.Command {
 				if len(toolIDs) == 0 {
 					return fmt.Errorf("no tools configured — run 'panel init' to set up tools")
 				}
-				toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
-
-				return runTUI(cfg, prompt, toolIDs, ro, expertFlag, preSelected)
+				if teamFlag != "" {
+					teamExperts, ok := cfg.Teams[teamFlag]
+					if !ok {
+						return fmt.Errorf("unknown team: %q", teamFlag)
+					}
+					toolIDs = expandTeamCrossProduct(toolIDs, teamExperts, cfg)
+					preSelected = true // skip TUI tool selection, team defines the set
+				} else {
+					toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
+				}
+				return runTUI(cfg, prompt, toolIDs, ro, expertFlag, teamFlag, preSelected)
 			}
 
 			// --- Non-TUI path: JSON, dry-run, piped, or non-interactive ---
@@ -115,7 +129,26 @@ func newRunCmd() *cobra.Command {
 				}
 			}
 
-			toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
+			if teamFlag != "" {
+				teamExperts, ok := cfg.Teams[teamFlag]
+				if !ok {
+					return fmt.Errorf("unknown team: %q", teamFlag)
+				}
+				toolIDs = expandTeamCrossProduct(toolIDs, teamExperts, cfg)
+
+				// Confirmation prompt for large cross-products
+				if len(toolIDs) > 8 && !yesFlag &&
+					term.IsTerminal(int(os.Stderr.Fd())) && term.IsTerminal(int(os.Stdin.Fd())) {
+					fmt.Fprintf(os.Stderr, "This will dispatch %d runs (%d experts × %d tools). Continue? [y/N] ",
+						len(toolIDs), len(teamExperts), len(toolIDs)/len(teamExperts))
+					scanner := bufio.NewScanner(os.Stdin)
+					if !scanner.Scan() || strings.ToLower(strings.TrimSpace(scanner.Text())) != "y" {
+						return fmt.Errorf("aborted")
+					}
+				}
+			} else {
+				toolIDs = expandDuplicateToolIDs(toolIDs, cfg)
+			}
 
 			tools, err := buildTools(cfg, toolIDs)
 			if err != nil {
@@ -123,7 +156,12 @@ func newRunCmd() *cobra.Command {
 			}
 
 			if dryRun {
-				expertIDs, _, pErr := resolveToolExperts(tools, cfg, expertFlag)
+				var dryExpertIDs []string
+				if teamFlag != "" {
+					dryExpertIDs, _, _ = resolveTeamExperts(toolIDs, expert.Dir())
+				} else {
+					dryExpertIDs, _, _ = resolveToolExperts(tools, cfg, expertFlag)
+				}
 				params := adapter.RunParams{
 					Prompt:     prompt,
 					PromptFile: "<output>/prompt.md",
@@ -137,8 +175,8 @@ func newRunCmd() *cobra.Command {
 					if inv.Stdin != "" {
 						fmt.Fprintf(os.Stderr, "  stdin: %d bytes\n", len(inv.Stdin))
 					}
-					if pErr == nil && expertIDs[i] != "" {
-						fmt.Fprintf(os.Stderr, "  expert: %s\n", expertIDs[i])
+					if i < len(dryExpertIDs) && dryExpertIDs[i] != "" {
+						fmt.Fprintf(os.Stderr, "  expert: %s\n", dryExpertIDs[i])
 					}
 				}
 				return nil
@@ -178,9 +216,18 @@ func newRunCmd() *cobra.Command {
 			defer prog.Stop()
 
 			// Resolve experts
-			expertIDs, expertContents, err := resolveToolExperts(tools, cfg, expertFlag)
-			if err != nil {
-				return err
+			var expertIDs []string
+			var expertContents []string
+			if teamFlag != "" {
+				expertIDs, expertContents, err = resolveTeamExperts(toolIDs, expert.Dir())
+				if err != nil {
+					return err
+				}
+			} else {
+				expertIDs, expertContents, err = resolveToolExperts(tools, cfg, expertFlag)
+				if err != nil {
+					return err
+				}
 			}
 
 			// Build per-tool params
@@ -267,6 +314,8 @@ func newRunCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show invocations without executing")
 	cmd.Flags().StringVarP(&contextFlag, "context", "c", "", "Gather context from paths (comma-separated, or \".\" for git diff)")
 	cmd.Flags().StringVarP(&expertFlag, "expert", "E", "", "Expert ID to apply to all tools")
+	cmd.Flags().StringVarP(&teamFlag, "team", "T", "", "Named team of experts from config")
+	cmd.Flags().BoolVar(&yesFlag, "yes", false, "Skip confirmation prompts")
 
 	return cmd
 }
