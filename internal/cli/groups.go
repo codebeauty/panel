@@ -3,11 +3,13 @@ package cli
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/codebeauty/panel/internal/config"
+	"github.com/codebeauty/panel/internal/tui"
 )
 
 func newGroupsCmd() *cobra.Command {
@@ -35,9 +37,32 @@ func newGroupsListCmd() *cobra.Command {
 				fmt.Println("No groups configured.")
 				return nil
 			}
-			for name, members := range cfg.Groups {
-				fmt.Printf("%-15s %s\n", name, strings.Join(members, ", "))
+
+			names := make([]string, 0, len(cfg.Groups))
+			for name := range cfg.Groups {
+				names = append(names, name)
 			}
+			sort.Strings(names)
+
+			if !tui.IsTTY() {
+				for _, name := range names {
+					fmt.Printf("%-15s %s\n", name, strings.Join(cfg.Groups[name], ", "))
+				}
+				return nil
+			}
+
+			var rows [][]string
+			for _, name := range names {
+				rows = append(rows, []string{
+					name,
+					tui.StyleMuted.Render(strings.Join(cfg.Groups[name], ", ")),
+				})
+			}
+			t := tui.Table{
+				Headers: []string{"GROUP", "MEMBERS"},
+				Rows:    rows,
+			}
+			fmt.Print(t.Render())
 			return nil
 		},
 	}

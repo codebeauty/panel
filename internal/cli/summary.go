@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/codebeauty/panel/internal/output"
+	"github.com/codebeauty/panel/internal/tui"
 )
 
 func newSummaryCmd() *cobra.Command {
@@ -125,26 +126,41 @@ func newSummaryListCmd() *cobra.Command {
 			}
 
 			w := cmd.OutOrStdout()
+			rich := tui.IsTTY()
+
 			for _, r := range runs {
 				m, err := output.ReadManifest(r.Path)
 				if err != nil {
 					continue
 				}
 
-				fmt.Fprintf(w, "─── %s ───\n", r.Mtime.Format("2006-01-02 15:04"))
+				if rich {
+					fmt.Fprintln(w, tui.Separator(r.Mtime.Format("2006-01-02 15:04")))
+				} else {
+					fmt.Fprintf(w, "─── %s ───\n", r.Mtime.Format("2006-01-02 15:04"))
+				}
 
 				prompt := m.Prompt
 				if len(prompt) > 60 {
 					prompt = prompt[:60] + "..."
 				}
-				fmt.Fprintf(w, "Prompt: %s\n", prompt)
+				if rich {
+					fmt.Fprintf(w, "  Prompt: %s\n", prompt)
+				} else {
+					fmt.Fprintf(w, "Prompt: %s\n", prompt)
+				}
 
 				if len(m.Results) > 0 {
 					toolSummaries := make([]string, len(m.Results))
 					for i, res := range m.Results {
-						icon := "✓"
-						if res.Status != "success" {
-							icon = "✗"
+						var icon string
+						if rich {
+							icon = tui.StatusIcon(res.Status)
+						} else {
+							icon = "✓"
+							if res.Status != "success" {
+								icon = "✗"
+							}
 						}
 						if res.Persona != "" {
 							toolSummaries[i] = fmt.Sprintf("%s [%s] (%s %s)", res.ToolID, res.Persona, icon, res.Duration)
@@ -152,10 +168,18 @@ func newSummaryListCmd() *cobra.Command {
 							toolSummaries[i] = fmt.Sprintf("%s (%s %s)", res.ToolID, icon, res.Duration)
 						}
 					}
-					fmt.Fprintf(w, "Tools:  %s\n", strings.Join(toolSummaries, ", "))
+					if rich {
+						fmt.Fprintf(w, "  Tools:  %s\n", strings.Join(toolSummaries, ", "))
+					} else {
+						fmt.Fprintf(w, "Tools:  %s\n", strings.Join(toolSummaries, ", "))
+					}
 				}
 
-				fmt.Fprintf(w, "Path:   %s\n\n", r.Path)
+				if rich {
+					fmt.Fprintf(w, "  Path:   %s\n\n", tui.StyleMuted.Render(r.Path))
+				} else {
+					fmt.Fprintf(w, "Path:   %s\n\n", r.Path)
+				}
 			}
 
 			return nil

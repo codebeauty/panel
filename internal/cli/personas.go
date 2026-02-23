@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/codebeauty/panel/internal/persona"
+	"github.com/codebeauty/panel/internal/tui"
 )
 
 func newPersonasCmd() *cobra.Command {
@@ -39,13 +40,31 @@ func newPersonasListCmd() *cobra.Command {
 				fmt.Println("No personas found. Run 'panel init' or 'panel personas reset' to install built-in presets.")
 				return nil
 			}
-			for _, id := range ids {
-				label := id
-				if _, ok := persona.Builtins[id]; ok {
-					label += "  (built-in)"
+
+			if !tui.IsTTY() {
+				for _, id := range ids {
+					label := id
+					if _, ok := persona.Builtins[id]; ok {
+						label += "  (built-in)"
+					}
+					fmt.Println(label)
 				}
-				fmt.Println(label)
+				return nil
 			}
+
+			var rows [][]string
+			for _, id := range ids {
+				badge := ""
+				if _, ok := persona.Builtins[id]; ok {
+					badge = tui.Badge("built-in")
+				}
+				rows = append(rows, []string{id, badge})
+			}
+			t := tui.Table{
+				Headers: []string{"PERSONA", ""},
+				Rows:    rows,
+			}
+			fmt.Print(t.Render())
 			return nil
 		},
 	}
