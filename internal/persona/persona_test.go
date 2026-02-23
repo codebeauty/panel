@@ -231,3 +231,50 @@ func TestSyncBuiltinsDeterministicOrder(t *testing.T) {
 	SyncBuiltins(dir, callback)
 	assert.Equal(t, []string{"architect", "security"}, callOrder)
 }
+
+func TestEndToEndPersonaFlow(t *testing.T) {
+	dir := t.TempDir()
+
+	// 1. Sync builtins
+	written, err := SyncBuiltins(dir, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, 6, written)
+
+	// 2. List all
+	ids, err := List(dir)
+	assert.NoError(t, err)
+	assert.Len(t, ids, 6)
+
+	// 3. Load security persona
+	content, err := Load("security", dir)
+	assert.NoError(t, err)
+	assert.Contains(t, content, "security engineer")
+
+	// 4. Inject into prompt
+	prompt := "Review this authentication flow"
+	injected := InjectPersona(content, prompt)
+	assert.Contains(t, injected, "## Role")
+	assert.Contains(t, injected, "security engineer")
+	assert.Contains(t, injected, prompt)
+
+	// 5. Add a custom persona
+	customPath := filepath.Join(dir, "golang.md")
+	os.WriteFile(customPath, []byte("You are a Go expert."), 0o600)
+
+	ids, _ = List(dir)
+	assert.Len(t, ids, 7)
+	assert.Contains(t, ids, "golang")
+
+	// 6. Re-sync doesn't clobber custom
+	written, err = SyncBuiltins(dir, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, written) // all builtins identical
+
+	// Custom still there
+	custom, _ := Load("golang", dir)
+	assert.Equal(t, "You are a Go expert.", custom)
+
+	// 7. Path traversal blocked
+	_, err = Load("../escape", dir)
+	assert.Error(t, err)
+}
