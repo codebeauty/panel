@@ -61,7 +61,7 @@ func ValidateToolName(name string) error {
 	return nil
 }
 
-func globalConfigDir() string {
+func GlobalConfigDir() string {
 	home := os.Getenv("HOME")
 	macOSPath := filepath.Join(home, "Library", "Application Support", "panel")
 	if _, err := os.Stat(macOSPath); err == nil {
@@ -74,7 +74,7 @@ func globalConfigDir() string {
 }
 
 func GlobalConfigPath() string {
-	return filepath.Join(globalConfigDir(), "config.json")
+	return filepath.Join(GlobalConfigDir(), "config.json")
 }
 
 func LoadFromFile(path string) (*Config, error) {

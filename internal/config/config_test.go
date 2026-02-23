@@ -8,6 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestGlobalConfigDir(t *testing.T) {
+	dir := GlobalConfigDir()
+	assert.Contains(t, dir, "panel")
+	assert.NotEmpty(t, dir)
+}
+
 func TestNewDefaults(t *testing.T) {
 	cfg := NewDefaults()
 
