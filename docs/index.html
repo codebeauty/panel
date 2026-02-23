@@ -215,6 +215,118 @@
       line-height: 1.5;
     }
 
+    /* Personas */
+    .personas-intro {
+      font-size: 1.05rem;
+      color: var(--gray-500);
+      margin-bottom: 28px;
+      max-width: 560px;
+    }
+
+    .personas {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .persona-card {
+      padding: 20px;
+      background: white;
+      border-radius: var(--radius);
+      border: 1px solid var(--gray-200);
+    }
+
+    .persona-avatar {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      margin-bottom: 12px;
+    }
+
+    .persona-avatar .avatar-icon {
+      width: 44px;
+      height: 44px;
+      color: var(--gray-300);
+    }
+
+    .persona-badge {
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2.5px solid white;
+    }
+
+    .persona-badge svg {
+      display: block;
+    }
+
+    .persona-card .persona-id {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--gray-900);
+      margin-bottom: 6px;
+    }
+
+    .persona-card .persona-role {
+      font-size: 0.8rem;
+      color: var(--gray-500);
+      line-height: 1.45;
+    }
+
+    .beta-badge {
+      display: inline-block;
+      position: relative;
+      width: 50px;
+      height: 46px;
+      margin-left: 8px;
+      vertical-align: middle;
+      animation: badge-rock 3s ease-in-out infinite;
+      transform-origin: center center;
+    }
+
+    .beta-badge-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .beta-badge-text {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: white;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      z-index: 1;
+    }
+
+    @keyframes badge-rock {
+      0%, 100% { transform: rotate(-4deg); }
+      50% { transform: rotate(4deg); }
+    }
+
+    .persona-note {
+      font-size: 0.85rem;
+      color: var(--gray-400);
+      margin-top: 4px;
+    }
+
     /* Comparison */
     .comparison {
       width: 100%;
@@ -315,6 +427,7 @@
       .hero { padding: 48px 0 32px; }
       .hero .tagline { font-size: 1.5rem; }
       .features { grid-template-columns: 1fr; }
+      .personas { grid-template-columns: 1fr 1fr; }
       .install-box .copy-hint { display: none; }
     }
   </style>
@@ -398,17 +511,85 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
     </div>
   </section>
 
+  <!-- Personas -->
+  <section>
+    <h2>Expert personas <span class="beta-badge"><svg class="beta-badge-bg" viewBox="151 -1 155 141" xmlns="http://www.w3.org/2000/svg"><path d="M261.71214,1.45769584 C264.798439,2.45811901 267.471987,4.00169268 269.881529,6.17429468 C272.29107,8.34689668 274.111761,10.5858812 278.091097,17.4782927 L297.908903,51.8037396 C301.888239,58.6961511 302.91691,61.3924083 303.593668,64.5654335 C304.270426,67.7384586 304.270426,70.825606 303.593668,73.9986311 C302.91691,77.1716563 301.888239,79.8679135 297.908903,86.760325 L278.091097,121.085772 C274.111761,127.978183 272.29107,130.217168 269.881529,132.38977 C267.471987,134.562372 264.798439,136.105946 261.71214,137.106369 C258.62584,138.106792 255.776477,138.564065 247.817806,138.564065 L208.182194,138.564065 C200.223523,138.564065 197.37416,138.106792 194.28786,137.106369 C191.201561,136.105946 188.528013,134.562372 186.118471,132.38977 C186.020123,132.301092 185.922755,132.212304 185.826182,132.123093 L185.538657,131.853882 C183.397289,129.82061 181.563395,127.415538 177.908903,121.085772 L158.091097,86.760325 C154.111761,79.8679135 153.08309,77.1716563 152.406332,73.9986311 C151.729574,70.825606 151.729574,67.7384586 152.406332,64.5654335 C153.08309,61.3924083 154.111761,58.6961511 158.091097,51.8037396 L177.908903,17.4782927 C181.563395,11.148527 183.397289,8.7434551 185.538657,6.71018289 L185.826182,6.44097127 C185.922755,6.35176054 186.020123,6.26297231 186.118471,6.17429468 C188.528013,4.00169268 191.201561,2.45811901 194.28786,1.45769584 C197.311174,0.477689469 200.107123,0.0188904091 207.701267,0.000572082723 L247.817806,0 C255.776477,0 258.62584,0.45727267 261.71214,1.45769584 Z" fill="#fc5130"/></svg><span class="beta-badge-text">Beta</span></span></h2>
+    <p class="personas-intro">Assign expert roles to each tool. Same prompt, different perspectives — a security review, architecture review, and product review in parallel.</p>
+    <div class="personas">
+      <div class="persona-card">
+        <div class="persona-avatar">
+          <svg class="avatar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+          <div class="persona-badge" style="background: var(--red);"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
+        </div>
+        <div class="persona-id">security</div>
+        <div class="persona-role">Vulnerabilities, OWASP Top 10, attack surfaces, secure coding practices</div>
+      </div>
+      <div class="persona-card">
+        <div class="persona-avatar">
+          <svg class="avatar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+          <div class="persona-badge" style="background: var(--blue);"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg></div>
+        </div>
+        <div class="persona-id">performance</div>
+        <div class="persona-role">Latency, memory usage, algorithmic complexity, scalability bottlenecks</div>
+      </div>
+      <div class="persona-card">
+        <div class="persona-avatar">
+          <svg class="avatar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+          <div class="persona-badge" style="background: var(--green);"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg></div>
+        </div>
+        <div class="persona-id">architect</div>
+        <div class="persona-role">Maintainability, coupling, SOLID principles, extensibility, package structure</div>
+      </div>
+      <div class="persona-card">
+        <div class="persona-avatar">
+          <svg class="avatar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+          <div class="persona-badge" style="background: var(--gray-700);"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg></div>
+        </div>
+        <div class="persona-id">reviewer</div>
+        <div class="persona-role">Bugs, edge cases, readability, test coverage, best practices</div>
+      </div>
+      <div class="persona-card">
+        <div class="persona-avatar">
+          <svg class="avatar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+          <div class="persona-badge" style="background: var(--red);"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/></svg></div>
+        </div>
+        <div class="persona-id">devil</div>
+        <div class="persona-role">Challenge assumptions, find flaws in reasoning, argue the opposite position</div>
+      </div>
+      <div class="persona-card">
+        <div class="persona-avatar">
+          <svg class="avatar-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+          <div class="persona-badge" style="background: var(--blue);"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg></div>
+        </div>
+        <div class="persona-id">product</div>
+        <div class="persona-role">User impact, acceptance criteria, prioritization, market fit, accessibility</div>
+      </div>
+    </div>
+    <pre><span class="comment"># Apply a persona to all tools</span>
+<span class="cmd">panel run</span> <span class="flag">-P</span> security <span class="string">"review this authentication flow"</span>
+
+<span class="comment"># Or assign different personas per tool in config</span>
+<span class="cmd">panel run</span> <span class="string">"review this code"</span>   <span class="comment"># each tool uses its configured persona</span>
+
+<span class="comment"># Create your own</span>
+<span class="cmd">panel personas create</span> my-golang-expert</pre>
+    <p class="persona-note">6 built-in presets. Create unlimited custom personas as markdown files.</p>
+  </section>
+
   <!-- Output -->
   <section>
     <h2>Output structure</h2>
     <div class="tree">
 <span class="dir">agents/panel/</span>
 <span class="dir">  review-auth-flow-1770676882/</span>
-    <span class="file">prompt.md</span>            <span class="desc"># original prompt</span>
-    <span class="file">run.json</span>             <span class="desc"># manifest with metadata</span>
-    <span class="file">summary.md</span>           <span class="desc"># heuristic summary</span>
-    <span class="file">claude-opus.md</span>       <span class="desc"># Claude's response</span>
-    <span class="file">gemini-3-pro.md</span>      <span class="desc"># Gemini's response</span>
+    <span class="file">prompt.md</span>                <span class="desc"># original prompt (without persona)</span>
+    <span class="file">run.json</span>                 <span class="desc"># manifest with metadata</span>
+    <span class="file">summary.md</span>               <span class="desc"># heuristic summary</span>
+    <span class="file">claude-opus.md</span>           <span class="desc"># Claude's response</span>
+    <span class="file">claude-opus.stderr</span>       <span class="desc"># Claude's stderr</span>
+    <span class="file">claude-opus.prompt.md</span>    <span class="desc"># per-tool prompt with persona</span>
+    <span class="file">gemini-3-pro.md</span>          <span class="desc"># Gemini's response</span>
+    <span class="file">gemini-3-pro.stderr</span>      <span class="desc"># Gemini's stderr</span>
     </div>
   </section>
 
@@ -461,6 +642,7 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
       <a href="https://github.com/codebeauty/panel">GitHub</a>
       <a href="https://github.com/codebeauty/panel/releases">Releases</a>
       <a href="https://github.com/codebeauty/panel/blob/main/README.md">Docs</a>
+      <a href="https://bsky.app/profile/designerdrug.net">Bluesky</a>
     </div>
     <p class="footer-credit">Built out of curiosity by <a href="https://github.com/codebeauty">Mathias Bachmann</a></p>
   </div>

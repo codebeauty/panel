@@ -52,12 +52,14 @@ func TestValidatePersonaID(t *testing.T) {
 		{"semi;colon", false},
 	}
 	for _, tt := range tests {
-		err := ValidatePersonaID(tt.id)
-		if tt.valid {
-			assert.NoError(t, err, "expected %q to be valid", tt.id)
-		} else {
-			assert.Error(t, err, "expected %q to be invalid", tt.id)
-		}
+		t.Run(tt.id, func(t *testing.T) {
+			err := ValidatePersonaID(tt.id)
+			if tt.valid {
+				assert.NoError(t, err, "expected %q to be valid", tt.id)
+			} else {
+				assert.Error(t, err, "expected %q to be invalid", tt.id)
+			}
+		})
 	}
 }
 

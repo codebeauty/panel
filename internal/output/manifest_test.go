@@ -68,5 +68,15 @@ func TestManifestResultPersonaField(t *testing.T) {
 
 	data, err := json.Marshal(m)
 	assert.NoError(t, err)
+
+	// Persona present when set
 	assert.Contains(t, string(data), `"persona":"security"`)
+
+	// Persona omitted when empty (omitempty)
+	var parsed map[string]interface{}
+	json.Unmarshal(data, &parsed)
+	results := parsed["results"].([]interface{})
+	gemini := results[1].(map[string]interface{})
+	_, hasPersona := gemini["persona"]
+	assert.False(t, hasPersona, "empty persona should be omitted from JSON")
 }

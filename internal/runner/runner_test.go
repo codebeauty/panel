@@ -115,14 +115,34 @@ func TestRunnerTimeout(t *testing.T) {
 	assert.Equal(t, StatusTimeout, results[0].Status)
 }
 
+// captureAdapter records which RunParams it received, then delegates to a mock binary.
+type captureAdapter struct {
+	name     string
+	args     []string
+	captured *adapter.RunParams
+}
+
+func (c *captureAdapter) Name() string { return c.name }
+func (c *captureAdapter) BuildInvocation(p adapter.RunParams) adapter.Invocation {
+	c.captured = &p
+	return adapter.Invocation{
+		Binary: mockBinary,
+		Args:   c.args,
+		Dir:    p.WorkDir,
+	}
+}
+func (c *captureAdapter) ParseCost(stderr []byte) adapter.Cost { return adapter.Cost{} }
+
 func TestRunWithParamsPerTool(t *testing.T) {
-	r := New(4)
+	r := New(1) // serial to avoid race on captured field
 	outDir := t.TempDir()
 
-	// Two tools with different stdout output to prove they get different params
+	adapterA := &captureAdapter{name: "tool-a", args: []string{"output-a", "stderr-a", "0"}}
+	adapterB := &captureAdapter{name: "tool-b", args: []string{"output-b", "stderr-b", "0"}}
+
 	tools := []Tool{
-		{ID: "tool-a", Adapter: &mockAdapter{name: "tool-a", args: []string{"output-a", "stderr-a", "0"}}},
-		{ID: "tool-b", Adapter: &mockAdapter{name: "tool-b", args: []string{"output-b", "stderr-b", "0"}}},
+		{ID: "tool-a", Adapter: adapterA},
+		{ID: "tool-b", Adapter: adapterB},
 	}
 
 	params := []adapter.RunParams{
@@ -134,6 +154,28 @@ func TestRunWithParamsPerTool(t *testing.T) {
 	assert.Len(t, results, 2)
 	assert.Equal(t, StatusSuccess, results[0].Status)
 	assert.Equal(t, StatusSuccess, results[1].Status)
+
+	// Verify each tool received its own params
+	assert.Equal(t, "prompt-for-a", adapterA.captured.Prompt)
+	assert.Equal(t, "prompt-for-b", adapterB.captured.Prompt)
+	assert.NotEqual(t, adapterA.captured.Prompt, adapterB.captured.Prompt)
+}
+
+func TestRunWithParamsPanicsOnMismatch(t *testing.T) {
+	r := New(4)
+	outDir := t.TempDir()
+
+	tools := []Tool{
+		{ID: "tool-a", Adapter: &mockAdapter{name: "tool-a", args: []string{"out", "", "0"}}},
+	}
+	params := []adapter.RunParams{
+		{Prompt: "a", WorkDir: outDir, Timeout: 10 * time.Second},
+		{Prompt: "b", WorkDir: outDir, Timeout: 10 * time.Second},
+	}
+
+	assert.Panics(t, func() {
+		r.RunWithParams(context.Background(), tools, params, outDir)
+	})
 }
 
 func TestRunnerPartialFailure(t *testing.T) {

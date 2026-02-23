@@ -99,6 +99,9 @@ func (r *Runner) Run(ctx context.Context, tools []Tool, params adapter.RunParams
 // RunWithParams dispatches each tool with its own RunParams in parallel.
 // The params slice must be the same length as tools.
 func (r *Runner) RunWithParams(ctx context.Context, tools []Tool, params []adapter.RunParams, outDir string) []Result {
+	if len(params) != len(tools) {
+		panic(fmt.Sprintf("RunWithParams: len(tools)=%d != len(params)=%d", len(tools), len(params)))
+	}
 	results := make([]Result, len(tools))
 
 	sem := semaphore.NewWeighted(r.maxParallel)

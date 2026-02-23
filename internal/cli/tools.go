@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"text/tabwriter"
 	"time"
 
@@ -46,9 +47,16 @@ func newToolsListCmd() *cobra.Command {
 				return nil
 			}
 
+			ids := make([]string, 0, len(cfg.Tools))
+			for id := range cfg.Tools {
+				ids = append(ids, id)
+			}
+			sort.Strings(ids)
+
 			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 			fmt.Fprintln(w, "ID\tADAPTER\tBINARY\tENABLED\tPERSONA")
-			for id, t := range cfg.Tools {
+			for _, id := range ids {
+				t := cfg.Tools[id]
 				fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n", id, t.Adapter, t.Binary, t.Enabled, t.Persona)
 			}
 			w.Flush()
