@@ -148,6 +148,15 @@ func SyncBuiltins(dir string, onDiff DiffFunc) (int, error) {
 	return written, nil
 }
 
+// InjectPersona prepends persona text to a prompt.
+// If personaText is empty, returns the original prompt unchanged.
+func InjectPersona(personaText, prompt string) string {
+	if personaText == "" {
+		return prompt
+	}
+	return fmt.Sprintf("## Role\n\n%s\n\n---\n\n%s", personaText, prompt)
+}
+
 // Builtins contains the 6 built-in persona presets.
 // Keys are persona IDs, values are the full markdown content.
 var Builtins = map[string]string{

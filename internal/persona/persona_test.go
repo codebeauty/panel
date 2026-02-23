@@ -200,6 +200,23 @@ func TestSyncBuiltinsBackup(t *testing.T) {
 	assert.Equal(t, "custom content", string(backup))
 }
 
+func TestInjectPersona(t *testing.T) {
+	result := InjectPersona("You are a security expert.", "Review this code")
+	assert.Contains(t, result, "## Role")
+	assert.Contains(t, result, "You are a security expert.")
+	assert.Contains(t, result, "---")
+	assert.Contains(t, result, "Review this code")
+	// Persona comes before prompt
+	roleIdx := strings.Index(result, "## Role")
+	promptIdx := strings.Index(result, "Review this code")
+	assert.Less(t, roleIdx, promptIdx)
+}
+
+func TestInjectPersonaEmpty(t *testing.T) {
+	result := InjectPersona("", "Review this code")
+	assert.Equal(t, "Review this code", result)
+}
+
 func TestSyncBuiltinsDeterministicOrder(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "architect.md"), []byte("custom"), 0o600)
