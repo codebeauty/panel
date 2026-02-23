@@ -156,6 +156,24 @@
       color: var(--gray-400);
     }
 
+    #version-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 12px;
+      border-radius: 999px;
+      background: var(--red);
+      color: #fff;
+      margin-right: 8px;
+      vertical-align: middle;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #version-tag.loaded {
+      opacity: 1;
+    }
+
     /* Sections */
     section {
       padding: 48px 0;
@@ -621,7 +639,7 @@
       <span>brew install codebeauty/tap/panel</span>
       <span class="copy-hint">click to copy</span>
     </div>
-    <p class="install-note">macOS only (Apple Silicon &amp; Intel) &middot; No runtime dependencies</p>
+    <p class="install-note"></span>macOS only (Apple Silicon &amp; Intel) <span id="version-tag"/></p>
   </div>
 
   <!-- Quick Start -->
@@ -747,7 +765,7 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
 <span class="cmd">panel experts create</span> my-golang-expert</pre>
     <p class="expert-note">6 built-in presets. Create unlimited custom experts as markdown files.</p>
     <h3 style="margin-top: 32px; font-size: 1.1rem; font-weight: 600;">Teams</h3>
-    <p class="experts-intro" style="margin-top: 12px;">Group experts into reusable teams. <code>--team</code> creates a cross-product &mdash; each tool runs once per expert.</p>
+    <p class="experts-intro" style="margin-top: 12px;">Group experts into reusable teams. A single flag runs every tool with every expert &mdash; one prompt, multiple perspectives.</p>
     <pre><span class="comment"># Create a team</span>
 <span class="cmd">panel teams create</span> code-review <span class="flag">--experts</span> security,architect,reviewer
 
@@ -847,6 +865,16 @@ function copyInstall(el) {
     el.querySelector('.copy-hint').textContent = 'click to copy';
   }, 2000);
 }
+
+// Fetch latest release version from GitHub
+fetch('https://api.github.com/repos/codebeauty/panel/releases/latest')
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(data => {
+    const el = document.getElementById('version-tag');
+    el.textContent = data.tag_name;
+    el.classList.add('loaded');
+  })
+  .catch(() => {});
 
 // Colored dots on the same 32px grid
 (function() {
