@@ -5,7 +5,17 @@
 - Go 1.26+
 - macOS (darwin/arm64)
 
-## Building
+## Alternative Install Methods
+
+### Go Install
+
+Requires a [released version](https://github.com/codebeauty/panel/releases).
+
+```bash
+go install github.com/codebeauty/panel/cmd/panel@latest
+```
+
+### Build from Source
 
 ```bash
 git clone https://github.com/codebeauty/panel.git

@@ -1,6 +1,12 @@
-# panel
+<p align="center">
+  <img src="assets/panel.svg" alt="panel" width="400">
+</p>
 
-A CLI that fans out the same prompt to multiple AI coding agents in parallel and collects their independent responses. Not task splitting — second opinions.
+# Panel
+
+A second opinion is good. A panel of experts is better. Fan out prompts to Claude, Gemini, Codex, and more — all at once, all independently.
+
+Inspired by [counselors](https://github.com/aarondfrancis/counselors) by [Aaron Francis](https://github.com/aarondfrancis), but may go different paths. We'll see :) [Why panel?](#why-panel)
 
 ## Install
 
@@ -10,29 +16,12 @@ A CLI that fans out the same prompt to multiple AI coding agents in parallel and
 brew install codebeauty/homebrew-tap/panel
 ```
 
-### Go Install
-
-Requires Go 1.25+ and a [released version](https://github.com/codebeauty/panel/releases).
-
-```bash
-go install github.com/codebeauty/panel/cmd/panel@latest
-```
-
-### Build from Source
-
-```bash
-git clone https://github.com/codebeauty/panel.git
-cd panel
-make build
-# Binary at dist/panel
-```
-
-> **Note:** panel is macOS only (Apple Silicon and Intel).
+> **Note:** for now panel is macOS only (Apple Silicon and Intel).
 
 ## Quick Start
 
 ```bash
-make build && panel init
+panel init
 
 panel run "review this authentication flow for security issues"
 ```
@@ -236,3 +225,16 @@ Creates three independent runs as `claude-opus`, `claude-opus__2`, `claude-opus_
 ## Development
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for build instructions, adapter details, project structure, and security documentation.
+
+## Why panel?
+
+Same prompt fan-out pattern as [counselors](https://github.com/aarondfrancis/counselors), rewritten in Go.
+
+|                  | panel | counselors |
+|------------------|-------|------------|
+| Runtime deps     | None  | Node.js 20+|
+| Install size     | ~3 MB | ~102 MB    |
+| Startup          | ~4 ms | ~120 ms    |
+| Peak memory      | ~5 MB | ~65 MB     |
+
+Both dispatch to the same AI CLIs — response times depend on the AI provider, not the tool.
