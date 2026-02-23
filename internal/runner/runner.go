@@ -96,6 +96,37 @@ func (r *Runner) Run(ctx context.Context, tools []Tool, params adapter.RunParams
 	return results
 }
 
+// RunWithParams dispatches each tool with its own RunParams in parallel.
+// The params slice must be the same length as tools.
+func (r *Runner) RunWithParams(ctx context.Context, tools []Tool, params []adapter.RunParams, outDir string) []Result {
+	results := make([]Result, len(tools))
+
+	sem := semaphore.NewWeighted(r.maxParallel)
+	g, gctx := errgroup.WithContext(ctx)
+
+	env := append(FilterEnv(), injectedEnv...)
+
+	for i, tool := range tools {
+		p := params[i]
+		if p.Env == nil {
+			p.Env = env
+		}
+		g.Go(func() error {
+			if err := sem.Acquire(gctx, 1); err != nil {
+				results[i] = Result{ToolID: tool.ID, Status: StatusCancelled}
+				return nil
+			}
+			defer sem.Release(1)
+
+			results[i] = r.execTool(gctx, tool, p, outDir)
+			return nil
+		})
+	}
+
+	g.Wait()
+	return results
+}
+
 func (r *Runner) execTool(ctx context.Context, tool Tool, params adapter.RunParams, outDir string) Result {
 	start := time.Now()
 

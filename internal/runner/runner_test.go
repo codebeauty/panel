@@ -115,6 +115,27 @@ func TestRunnerTimeout(t *testing.T) {
 	assert.Equal(t, StatusTimeout, results[0].Status)
 }
 
+func TestRunWithParamsPerTool(t *testing.T) {
+	r := New(4)
+	outDir := t.TempDir()
+
+	// Two tools with different stdout output to prove they get different params
+	tools := []Tool{
+		{ID: "tool-a", Adapter: &mockAdapter{name: "tool-a", args: []string{"output-a", "stderr-a", "0"}}},
+		{ID: "tool-b", Adapter: &mockAdapter{name: "tool-b", args: []string{"output-b", "stderr-b", "0"}}},
+	}
+
+	params := []adapter.RunParams{
+		{Prompt: "prompt-for-a", WorkDir: outDir, Timeout: 10 * time.Second},
+		{Prompt: "prompt-for-b", WorkDir: outDir, Timeout: 10 * time.Second},
+	}
+
+	results := r.RunWithParams(context.Background(), tools, params, outDir)
+	assert.Len(t, results, 2)
+	assert.Equal(t, StatusSuccess, results[0].Status)
+	assert.Equal(t, StatusSuccess, results[1].Status)
+}
+
 func TestRunnerPartialFailure(t *testing.T) {
 	r := New(4)
 	outDir := t.TempDir()
