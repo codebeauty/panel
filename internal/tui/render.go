@@ -7,12 +7,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Badge renders a styled inline label.
 func Badge(text string) string {
 	return StyleMuted.Render("(" + text + ")")
 }
 
-// StatusIcon returns a colored icon for a result status string.
 func StatusIcon(status string) string {
 	switch status {
 	case "success":
@@ -28,7 +26,6 @@ func StatusIcon(status string) string {
 	}
 }
 
-// EnabledIcon returns a colored enabled/disabled indicator.
 func EnabledIcon(enabled bool) string {
 	if enabled {
 		return IconSuccess
@@ -36,14 +33,11 @@ func EnabledIcon(enabled bool) string {
 	return IconError
 }
 
-// Table renders rows as an aligned, styled table.
-// headers is the first row; rows follow.
 type Table struct {
 	Headers []string
 	Rows    [][]string
 }
 
-// Render produces a styled table string with aligned columns.
 func (t Table) Render() string {
 	if len(t.Headers) == 0 {
 		return ""
@@ -103,8 +97,6 @@ func (t Table) Render() string {
 	return b.String()
 }
 
-// FormatToolID formats a tool ID for display.
-// Composite IDs (tool@expert) are rendered as "tool (expert)" with muted expert.
 func FormatToolID(id string) string {
 	if i := strings.Index(id, "@"); i >= 0 {
 		return id[:i] + " " + StyleMuted.Render("("+id[i+1:]+")")
@@ -112,7 +104,6 @@ func FormatToolID(id string) string {
 	return id
 }
 
-// Separator renders a styled date/time separator line.
 func Separator(text string) string {
 	line := StyleMuted.Render("───")
 	return fmt.Sprintf("  %s %s %s", line, StyleBold.Render(text), line)

@@ -1,7 +1,5 @@
 package adapter
 
-import "fmt"
-
 type CursorAdapter struct {
 	binary     string
 	extraFlags []string
@@ -21,9 +19,7 @@ func (a *CursorAdapter) BuildInvocation(p RunParams) Invocation {
 	}
 
 	args = append(args, a.extraFlags...)
-
-	instruction := fmt.Sprintf("Read the file at %s and follow the instructions within it.", p.PromptFile)
-	args = append(args, instruction)
+	args = append(args, PromptFileInstruction(p.PromptFile))
 
 	return Invocation{
 		Binary: a.binary,

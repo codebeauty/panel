@@ -10,15 +10,14 @@ import (
 	"time"
 )
 
-// Candidate represents an output directory eligible for cleanup.
 type Candidate struct {
 	Name  string
 	Path  string
 	Mtime time.Time
 }
 
-// ParseDuration parses a human-friendly duration string.
-// Supports: ms, s, m, h, d, w. Bare number = days.
+// ParseDuration parses a human-friendly duration string (ms, s, m, h, d, w).
+// A bare number is treated as days.
 func ParseDuration(input string) (time.Duration, error) {
 	input = strings.TrimSpace(input)
 	if input == "" {
@@ -57,7 +56,6 @@ func ParseDuration(input string) (time.Duration, error) {
 	return time.Duration(n * float64(24 * time.Hour)), nil
 }
 
-// scanDirs reads immediate subdirectories of baseDir, skipping files and symlinks.
 func scanDirs(baseDir string) ([]Candidate, error) {
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
@@ -69,8 +67,6 @@ func scanDirs(baseDir string) ([]Candidate, error) {
 
 	var dirs []Candidate
 	for _, entry := range entries {
-		// entry.Type() uses lstat, so ModeSymlink is visible here.
-		// entry.IsDir() would return true for symlinks-to-dirs, so check type bits.
 		if entry.Type()&os.ModeSymlink != 0 || !entry.IsDir() {
 			continue
 		}
@@ -87,8 +83,6 @@ func scanDirs(baseDir string) ([]Candidate, error) {
 	return dirs, nil
 }
 
-// ScanCandidates reads immediate children of baseDir,
-// skips symlinks, filters directories by mtime before cutoff.
 func ScanCandidates(baseDir string, cutoff time.Time) ([]Candidate, error) {
 	dirs, err := scanDirs(baseDir)
 	if err != nil {
@@ -104,8 +98,6 @@ func ScanCandidates(baseDir string, cutoff time.Time) ([]Candidate, error) {
 	return candidates, nil
 }
 
-// ScanRuns returns all run directories in baseDir, sorted newest-first by mtime.
-// Skips files and symlinks.
 func ScanRuns(baseDir string) ([]Candidate, error) {
 	runs, err := scanDirs(baseDir)
 	if err != nil {

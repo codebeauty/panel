@@ -10,7 +10,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// RunConfig holds the inputs needed to drive the TUI run flow.
 type RunConfig struct {
 	AllToolIDs []string          // all enabled tool IDs for selection
 	Adapters   map[string]string // toolID -> adapter name
@@ -22,11 +21,8 @@ type RunConfig struct {
 	PreExpert  string // expert from -E flag
 }
 
-// DispatchFunc is called when the user confirms. It runs the tools and sends
-// messages back via the tea.Program (captured in the closure, not passed here).
 type DispatchFunc func(ctx context.Context, toolIDs []string, expert string)
 
-// Model is the top-level BubbleTea model for `panel run`.
 type Model struct {
 	phase    Phase
 	width    int
@@ -51,7 +47,6 @@ type Model struct {
 	selectedExpert string
 }
 
-// NewModel creates the TUI model. The dispatch function is called when execution starts.
 func NewModel(cfg RunConfig, dispatch DispatchFunc) Model {
 	m := Model{
 		cfg:      cfg,
@@ -271,7 +266,6 @@ func (m Model) updateSummary(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// transitionToConfirm sets up the confirm phase with the currently selected tools and expert.
 func (m *Model) transitionToConfirm(canGoBack bool) {
 	m.phase = PhaseConfirm
 	m.confirmModel = ConfirmModel{

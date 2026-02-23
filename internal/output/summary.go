@@ -11,7 +11,6 @@ import (
 
 var headingRe = regexp.MustCompile(`^#{1,3}\s+(.+)`)
 
-// BuildSummary generates a heuristic (no LLM) markdown summary of a run.
 func BuildSummary(manifest *Manifest, runDir string) string {
 	var b strings.Builder
 
@@ -113,12 +112,10 @@ func BuildSummary(manifest *Manifest, runDir string) string {
 	return b.String()
 }
 
-// WriteSummary writes summary.md atomically to the given directory.
 func WriteSummary(dir, content string) error {
 	return AtomicWrite(filepath.Join(dir, "summary.md"), []byte(content), 0o600)
 }
 
-// extractHeadings reads a file and returns up to 10 markdown headings (h1-h3).
 func extractHeadings(path string) []string {
 	f, err := os.Open(path)
 	if err != nil {
@@ -139,7 +136,6 @@ func extractHeadings(path string) []string {
 	return headings
 }
 
-// statusIcon returns a unicode icon for the given result status.
 func statusIcon(status string) string {
 	switch status {
 	case "success":

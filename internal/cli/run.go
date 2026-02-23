@@ -230,7 +230,6 @@ func newRunCmd() *cobra.Command {
 			prog.Start()
 			defer prog.Stop()
 
-			// Resolve experts
 			expertIDs, expertContents, err := resolveExperts(tools, toolIDs, cfg, expertFlag, teamFlag)
 			if err != nil {
 				return err
@@ -336,7 +335,6 @@ func resolveTools(cfg *config.Config, toolsFlag, groupFlag string) ([]string, er
 	return ids, nil
 }
 
-// sortToolIDsByAdapter sorts tool IDs by adapter name, then by tool ID within each adapter.
 func sortToolIDsByAdapter(ids []string, cfg *config.Config) {
 	sort.Slice(ids, func(i, j int) bool {
 		ai := cfg.Tools[ids[i]].Adapter
@@ -382,7 +380,6 @@ func buildTools(cfg *config.Config, toolIDs []string) ([]runner.Tool, error) {
 	return tools, nil
 }
 
-// lookupTeam returns the expert list for a team, or an error if not found or empty.
 func lookupTeam(cfg *config.Config, teamName string) ([]string, error) {
 	experts, ok := cfg.Teams[teamName]
 	if !ok {
@@ -402,8 +399,6 @@ func mustGetwd() string {
 	return wd
 }
 
-// resolveOutputDir returns the flag value if non-empty, otherwise loads the
-// merged config and returns the configured output directory.
 func resolveOutputDir(flagValue string) (string, error) {
 	if flagValue != "" {
 		return flagValue, nil
@@ -472,6 +467,13 @@ func printRichSummary(results []runner.Result, runDir string) {
 	fmt.Fprintf(os.Stderr, "\n%s %s\n", tui.StyleBold.Render("Output:"), runDir)
 }
 
+var plainIcons = map[runner.Status]string{
+	runner.StatusSuccess:   "+",
+	runner.StatusFailed:    "x",
+	runner.StatusTimeout:   "!",
+	runner.StatusCancelled: "-",
+}
+
 func printSummary(results []runner.Result, runDir string) {
 	fmt.Fprintf(os.Stderr, "\n--- Results ---\n")
 	maxLen := 0
@@ -482,17 +484,8 @@ func printSummary(results []runner.Result, runDir string) {
 	}
 	fmtStr := fmt.Sprintf(" %%s %%-%ds %%s (exit %%d) %%s\n", maxLen)
 	for _, r := range results {
-		var icon string
-		switch r.Status {
-		case runner.StatusSuccess:
-			icon = "+"
-		case runner.StatusFailed:
-			icon = "x"
-		case runner.StatusTimeout:
-			icon = "!"
-		case runner.StatusCancelled:
-			icon = "-"
-		default:
+		icon := plainIcons[r.Status]
+		if icon == "" {
 			icon = "?"
 		}
 		fmt.Fprintf(os.Stderr, fmtStr,
@@ -506,7 +499,6 @@ func printSummary(results []runner.Result, runDir string) {
 	fmt.Fprintf(os.Stderr, "\nOutput: %s\n", runDir)
 }
 
-// stderrSnippet returns the first line of stderr (trimmed, max 120 chars) for inline display.
 func stderrSnippet(stderr []byte) string {
 	s := strings.TrimSpace(string(stderr))
 	if s == "" {
@@ -521,8 +513,6 @@ func stderrSnippet(stderr []byte) string {
 	return s
 }
 
-// resolveToolExperts resolves expert content for each tool.
-// Returns parallel slices of expert IDs and content (empty string = no expert).
 func resolveToolExperts(tools []runner.Tool, cfg *config.Config, expertFlag string) (ids []string, contents []string, err error) {
 	expertDir := expert.Dir()
 	ids = make([]string, len(tools))
@@ -548,7 +538,6 @@ func resolveToolExperts(tools []runner.Tool, cfg *config.Config, expertFlag stri
 	return ids, contents, nil
 }
 
-// resolveExperts dispatches to resolveTeamExperts or resolveToolExperts based on teamFlag.
 func resolveExperts(tools []runner.Tool, toolIDs []string, cfg *config.Config, expertFlag, teamFlag string) (ids []string, contents []string, err error) {
 	if teamFlag != "" {
 		return resolveTeamExperts(toolIDs, expert.Dir())
@@ -556,8 +545,6 @@ func resolveExperts(tools []runner.Tool, toolIDs []string, cfg *config.Config, e
 	return resolveToolExperts(tools, cfg, expertFlag)
 }
 
-// buildExpertParams creates per-tool RunParams with expert content injected into prompts.
-// Returns nil if no expert content exists (caller should use baseParams for all tools).
 func buildExpertParams(tools []runner.Tool, expertContents []string, baseParams adapter.RunParams, prompt, runDir string) ([]adapter.RunParams, error) {
 	hasExpert := false
 	for _, c := range expertContents {
@@ -586,7 +573,6 @@ func buildExpertParams(tools []runner.Tool, expertContents []string, baseParams 
 	return params, nil
 }
 
-// writeManifestAndSummary writes the run manifest and summary to the run directory.
 func writeManifestAndSummary(runDir, prompt string, startedAt time.Time, results []runner.Result, expertIDs []string, cfg *config.Config, ro config.ReadOnlyMode) *output.Manifest {
 	manifest := output.BuildManifest(prompt, startedAt, results, output.ManifestConfig{
 		ReadOnly:    string(ro),

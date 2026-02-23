@@ -1,6 +1,5 @@
 package adapter
 
-// Model represents a variant of an AI tool (e.g., different model sizes).
 type Model struct {
 	ID          string
 	DisplayName string
@@ -9,7 +8,6 @@ type Model struct {
 	Recommended bool
 }
 
-// AdapterModels maps adapter names to their available models.
 var AdapterModels = map[string][]Model{
 	"claude": {
 		{ID: "opus", DisplayName: "Opus 4.6 — most capable", CompoundID: "claude-opus", ExtraFlags: []string{"--model", "opus"}, Recommended: true},
@@ -45,7 +43,6 @@ var AdapterModels = map[string][]Model{
 	},
 }
 
-// RecommendedModel returns the recommended model for an adapter, or nil if none exists.
 func RecommendedModel(adapterName string) *Model {
 	models, ok := AdapterModels[adapterName]
 	if !ok {

@@ -1,6 +1,9 @@
 package adapter
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type ReadOnlyMode string
 
@@ -25,7 +28,6 @@ type Cost struct {
 	TotalUSD     float64 `json:"totalUsd,omitempty"`
 }
 
-// Invocation describes how to launch a tool process.
 type Invocation struct {
 	Binary string
 	Args   []string
@@ -33,9 +35,14 @@ type Invocation struct {
 	Dir    string
 }
 
-// Adapter builds invocations for a specific AI CLI tool.
 type Adapter interface {
 	Name() string
 	BuildInvocation(params RunParams) Invocation
 	ParseCost(stderr []byte) Cost
+}
+
+// PromptFileInstruction returns the standard instruction that tells an AI CLI
+// to read the prompt from a file.
+func PromptFileInstruction(promptFile string) string {
+	return fmt.Sprintf("Read the file at %s and follow the instructions within it.", promptFile)
 }

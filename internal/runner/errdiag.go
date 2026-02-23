@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// DiagCategory classifies the kind of error encountered.
 type DiagCategory string
 
 const (
@@ -19,7 +18,6 @@ const (
 	DiagOverloaded    DiagCategory = "overloaded"
 )
 
-// Diagnosis holds a human-readable explanation of a tool failure.
 type Diagnosis struct {
 	Category   DiagCategory
 	Message    string
@@ -30,19 +28,31 @@ func (d *Diagnosis) String() string {
 	return fmt.Sprintf("%s\n%s", d.Message, d.Suggestion)
 }
 
-// Diagnose inspects stderr output from a failed tool and returns a structured
-// diagnosis if a known error pattern is matched. Returns nil if the error
-// is not recognized.
 func Diagnose(toolID string, stderr []byte, exitCode int) *Diagnosis {
 	s := string(stderr)
-
-	// Check patterns in priority order (most specific first).
 	for _, check := range diagChecks {
 		if d := check(toolID, s, exitCode); d != nil {
 			return d
 		}
 	}
 	return nil
+}
+
+func containsAny(s string, patterns []string) bool {
+	for _, p := range patterns {
+		if strings.Contains(s, p) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasHTTPStatus(s string, code int) bool {
+	codeStr := fmt.Sprintf("%d", code)
+	return strings.Contains(s, "code: "+codeStr) ||
+		strings.Contains(s, "status: "+codeStr) ||
+		strings.Contains(s, `"code":`+codeStr) ||
+		strings.Contains(s, "status_code: "+codeStr)
 }
 
 var diagChecks = []func(toolID, stderr string, exitCode int) *Diagnosis{
@@ -69,7 +79,7 @@ func checkBinaryMissing(toolID, stderr string, _ int) *Diagnosis {
 	return nil
 }
 
-func checkModelNotFound(toolID, stderr string, exitCode int) *Diagnosis {
+func checkModelNotFound(toolID, stderr string, _ int) *Diagnosis {
 	patterns := []string{
 		"ModelNotFoundError",
 		"model_not_found",
@@ -78,34 +88,18 @@ func checkModelNotFound(toolID, stderr string, exitCode int) *Diagnosis {
 		"The model `",
 		"does not exist",
 	}
-	// Also match HTTP 404 with model-related context.
-	has404 := strings.Contains(stderr, "code: 404") || strings.Contains(stderr, "status: 404") || strings.Contains(stderr, "\"code\":404")
 
-	matched := false
-	for _, p := range patterns {
-		if strings.Contains(stderr, p) {
-			matched = true
-			break
-		}
-	}
-	if !matched && has404 {
-		// 404 alongside model-related terms
-		modelTerms := []string{"model", "Model", "entity"}
-		for _, t := range modelTerms {
-			if strings.Contains(stderr, t) {
-				matched = true
-				break
-			}
-		}
+	matched := containsAny(stderr, patterns)
+	if !matched && hasHTTPStatus(stderr, 404) {
+		matched = containsAny(stderr, []string{"model", "Model", "entity"})
 	}
 	if !matched {
 		return nil
 	}
 
-	tool := toolBaseName(toolID)
 	return &Diagnosis{
 		Category:   DiagModelNotFound,
-		Message:    fmt.Sprintf("The requested model was not found by %s.", tool),
+		Message:    fmt.Sprintf("The requested model was not found by %s.", toolBaseName(toolID)),
 		Suggestion: "Check that the model name is valid and available for your account.",
 	}
 }
@@ -121,23 +115,14 @@ func checkAuthFailure(toolID, stderr string, _ int) *Diagnosis {
 		"API key is invalid",
 		"Unauthorized",
 	}
-	has401 := strings.Contains(stderr, "code: 401") || strings.Contains(stderr, "status: 401") || strings.Contains(stderr, "\"code\":401") || strings.Contains(stderr, "status_code: 401")
 
-	matched := has401
-	for _, p := range patterns {
-		if strings.Contains(stderr, p) {
-			matched = true
-			break
-		}
-	}
-	if !matched {
+	if !containsAny(stderr, patterns) && !hasHTTPStatus(stderr, 401) {
 		return nil
 	}
 
 	tool := toolBaseName(toolID)
-	envHint := apiKeyEnvVar(tool)
 	suggestion := "Check that your API key is set and valid."
-	if envHint != "" {
+	if envHint := apiKeyEnvVar(tool); envHint != "" {
 		suggestion = fmt.Sprintf("Check that %s is set and valid.", envHint)
 	}
 
@@ -159,23 +144,14 @@ func checkRateLimit(toolID, stderr string, _ int) *Diagnosis {
 		"quota exceeded",
 		"Quota exceeded",
 	}
-	has429 := strings.Contains(stderr, "code: 429") || strings.Contains(stderr, "status: 429") || strings.Contains(stderr, "\"code\":429")
 
-	matched := has429
-	for _, p := range patterns {
-		if strings.Contains(stderr, p) {
-			matched = true
-			break
-		}
-	}
-	if !matched {
+	if !containsAny(stderr, patterns) && !hasHTTPStatus(stderr, 429) {
 		return nil
 	}
 
-	tool := toolBaseName(toolID)
 	return &Diagnosis{
 		Category:   DiagRateLimit,
-		Message:    fmt.Sprintf("Rate limited by %s.", tool),
+		Message:    fmt.Sprintf("Rate limited by %s.", toolBaseName(toolID)),
 		Suggestion: "Wait a moment and try again, or check your usage quota.",
 	}
 }
@@ -188,16 +164,14 @@ func checkOverloaded(_, stderr string, _ int) *Diagnosis {
 		"503",
 		"Service Unavailable",
 	}
-	for _, p := range patterns {
-		if strings.Contains(stderr, p) {
-			return &Diagnosis{
-				Category:   DiagOverloaded,
-				Message:    "The API is temporarily overloaded.",
-				Suggestion: "Wait a moment and try again.",
-			}
-		}
+	if !containsAny(stderr, patterns) {
+		return nil
 	}
-	return nil
+	return &Diagnosis{
+		Category:   DiagOverloaded,
+		Message:    "The API is temporarily overloaded.",
+		Suggestion: "Wait a moment and try again.",
+	}
 }
 
 func checkPermission(toolID, stderr string, _ int) *Diagnosis {
@@ -208,23 +182,14 @@ func checkPermission(toolID, stderr string, _ int) *Diagnosis {
 		"Access denied",
 		"access denied",
 	}
-	has403 := strings.Contains(stderr, "code: 403") || strings.Contains(stderr, "status: 403") || strings.Contains(stderr, "\"code\":403")
 
-	matched := has403
-	for _, p := range patterns {
-		if strings.Contains(stderr, p) {
-			matched = true
-			break
-		}
-	}
-	if !matched {
+	if !containsAny(stderr, patterns) && !hasHTTPStatus(stderr, 403) {
 		return nil
 	}
 
-	tool := toolBaseName(toolID)
 	return &Diagnosis{
 		Category:   DiagPermission,
-		Message:    fmt.Sprintf("Permission denied by %s.", tool),
+		Message:    fmt.Sprintf("Permission denied by %s.", toolBaseName(toolID)),
 		Suggestion: "Check that your API key has the required permissions.",
 	}
 }
@@ -243,22 +208,17 @@ func checkNetwork(_, stderr string, _ int) *Diagnosis {
 		"ENOTFOUND",
 		"getaddrinfo",
 	}
-	for _, p := range patterns {
-		if strings.Contains(stderr, p) {
-			return &Diagnosis{
-				Category:   DiagNetwork,
-				Message:    "A network error occurred.",
-				Suggestion: "Check your internet connection and try again.",
-			}
-		}
+	if !containsAny(stderr, patterns) {
+		return nil
 	}
-	return nil
+	return &Diagnosis{
+		Category:   DiagNetwork,
+		Message:    "A network error occurred.",
+		Suggestion: "Check your internet connection and try again.",
+	}
 }
 
-// toolBaseName extracts the base tool name from a toolID like "gemini-3.1-pro".
-// It returns the first segment before any dash-digit boundary that looks like a version.
 func toolBaseName(toolID string) string {
-	// Known prefixes.
 	for _, prefix := range []string{"claude", "codex", "gemini", "amp"} {
 		if strings.HasPrefix(strings.ToLower(toolID), prefix) {
 			return prefix

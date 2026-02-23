@@ -1,7 +1,5 @@
 package adapter
 
-import "fmt"
-
 const readOnlyTools = "Read,Glob,Grep,WebFetch,WebSearch"
 
 type ClaudeAdapter struct {
@@ -17,7 +15,6 @@ func (a *ClaudeAdapter) Name() string { return "claude" }
 
 func (a *ClaudeAdapter) BuildInvocation(p RunParams) Invocation {
 	args := []string{"-p", "--output-format", "text"}
-
 	args = append(args, a.extraFlags...)
 
 	if p.ReadOnly != ReadOnlyNone {
@@ -28,8 +25,7 @@ func (a *ClaudeAdapter) BuildInvocation(p RunParams) Invocation {
 		)
 	}
 
-	instruction := fmt.Sprintf("Read the file at %s and follow the instructions within it.", p.PromptFile)
-	args = append(args, instruction)
+	args = append(args, PromptFileInstruction(p.PromptFile))
 
 	return Invocation{
 		Binary: a.binary,

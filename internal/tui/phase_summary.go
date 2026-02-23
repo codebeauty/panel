@@ -12,9 +12,7 @@ import (
 	"github.com/codebeauty/panel/internal/runner"
 )
 
-// Lines reserved for chrome around the viewport:
-// title (1) + blank (1) + tab bar (1) + separator (1) + blank (1) + footer output (1) + footer keys (1) = 7
-const summaryChrome = 7
+const summaryChrome = 7 // title + blank + tab bar + separator + blank + footer output + footer keys
 
 type SummaryModel struct {
 	Results   []runner.Result
@@ -98,7 +96,6 @@ func (m *SummaryModel) viewportWidth() int {
 	return w
 }
 
-// wordWrap breaks long lines to fit within the given width.
 func wordWrap(s string, width int) string {
 	if width <= 0 {
 		return s
@@ -204,7 +201,7 @@ func (m SummaryModel) View() string {
 	b.WriteString("\n")
 
 	// Separator
-	sep := strings.Repeat("─", m.separatorWidth())
+	sep := strings.Repeat("─", m.viewportWidth())
 	b.WriteString(fmt.Sprintf("  %s\n", StyleMuted.Render(sep)))
 
 	// Viewport
@@ -219,18 +216,11 @@ func (m SummaryModel) View() string {
 	return b.String()
 }
 
-func (m SummaryModel) separatorWidth() int {
-	return m.viewportWidth()
-}
-
 func (m SummaryModel) indentViewport() string {
-	// Add 2-space indent to each viewport line
 	lines := strings.Split(m.viewport.View(), "\n")
-	indented := make([]string, len(lines))
-
 	indent := lipgloss.NewStyle().PaddingLeft(2)
 	for i, line := range lines {
-		indented[i] = indent.Render(line)
+		lines[i] = indent.Render(line)
 	}
-	return strings.Join(indented, "\n")
+	return strings.Join(lines, "\n")
 }

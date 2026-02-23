@@ -9,7 +9,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// padToolID returns a display-formatted tool ID padded to the given visual width.
 func padToolID(id string, maxWidth int) string {
 	display := FormatToolID(id)
 	pad := max(0, maxWidth-lipgloss.Width(display))
@@ -56,10 +55,8 @@ func (m ProgressModel) AllDone() bool {
 	return true
 }
 
-// statusWidth is the visual width of the longest status label ("cancelled" = 9).
-const statusWidth = 9
+const statusWidth = 9 // visual width of the longest status label ("cancelled")
 
-// padStatus pads a styled status string to statusWidth using the unstyled label width.
 func padStatus(styled, label string) string {
 	pad := max(0, statusWidth-len(label))
 	return styled + strings.Repeat(" ", pad)

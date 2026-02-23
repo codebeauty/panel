@@ -183,7 +183,6 @@ func newExpertsDeleteCmd() *cobra.Command {
 	return cmd
 }
 
-// findExpertTeamRefs returns team names that reference the given expert ID.
 func findExpertTeamRefs(expertID string, cfg *config.Config) []string {
 	var refs []string
 	for name, members := range cfg.Teams {
@@ -198,7 +197,6 @@ func findExpertTeamRefs(expertID string, cfg *config.Config) []string {
 	return refs
 }
 
-// syncDiffPrompt interactively asks the user what to do with a modified preset.
 func syncDiffPrompt(id, existing, builtin string) expert.SyncAction {
 	fmt.Fprintf(os.Stderr, "\nExpert %q has been modified.\n", id)
 	fmt.Fprintf(os.Stderr, "  [o]verwrite  [s]kip  [b]ackup & overwrite\n")

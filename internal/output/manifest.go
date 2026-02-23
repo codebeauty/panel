@@ -39,7 +39,6 @@ type ManifestResult struct {
 	Expert     string       `json:"expert,omitempty"`
 }
 
-// ReadManifest reads and parses run.json from the given directory.
 func ReadManifest(dir string) (*Manifest, error) {
 	data, err := os.ReadFile(filepath.Join(dir, "run.json"))
 	if err != nil {

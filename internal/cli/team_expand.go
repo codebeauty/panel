@@ -8,11 +8,6 @@ import (
 	"github.com/codebeauty/panel/internal/expert"
 )
 
-// expandTeamCrossProduct builds tool×expert composite IDs.
-// Deduplicates tool IDs. Mutates cfg.Tools by registering composite entries
-// (e.g., "claude@security") so buildTools can resolve them later.
-// Composite IDs intentionally use "@" which is outside ValidateToolName's
-// charset — these are runtime-generated, not user-created tool names.
 func expandTeamCrossProduct(toolIDs []string, teamExperts []string, cfg *config.Config) ([]string, error) {
 	seen := make(map[string]bool)
 	var deduped []string
@@ -38,9 +33,6 @@ func expandTeamCrossProduct(toolIDs []string, teamExperts []string, cfg *config.
 	return crossIDs, nil
 }
 
-// resolveTeamExperts extracts expert IDs from composite tool IDs (tool@expert)
-// and loads their content. Caches loaded experts to avoid redundant reads.
-// For non-composite IDs (no @), returns empty strings.
 func resolveTeamExperts(compositeIDs []string, expertDir string) (ids []string, contents []string, err error) {
 	cache := make(map[string]string)
 	ids = make([]string, len(compositeIDs))

@@ -1,7 +1,5 @@
 package adapter
 
-import "fmt"
-
 type CodexAdapter struct {
 	binary     string
 	extraFlags []string
@@ -22,9 +20,7 @@ func (a *CodexAdapter) BuildInvocation(p RunParams) Invocation {
 
 	args = append(args, "-c", "web_search=live", "--skip-git-repo-check")
 	args = append(args, a.extraFlags...)
-
-	instruction := fmt.Sprintf("Read the file at %s and follow the instructions within it.", p.PromptFile)
-	args = append(args, instruction)
+	args = append(args, PromptFileInstruction(p.PromptFile))
 
 	return Invocation{
 		Binary: a.binary,

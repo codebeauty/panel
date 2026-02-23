@@ -18,9 +18,7 @@ import (
 	"github.com/codebeauty/panel/internal/tui"
 )
 
-// runTUI launches the BubbleTea TUI for `panel run`.
-func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadOnlyMode, expertFlag string, teamFlag string, preSelected bool) error {
-	// Build adapter name map for display
+func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadOnlyMode, expertFlag, teamFlag string, preSelected bool) error {
 	adapters := make(map[string]string, len(toolIDs))
 	for _, id := range toolIDs {
 		if tc, ok := cfg.Tools[id]; ok {
@@ -30,11 +28,9 @@ func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadO
 
 	skipExpert := expertFlag != "" || teamFlag != ""
 
-	// Load available experts
 	var expertIDs []string
 	builtinSet := make(map[string]bool)
-	expertDir := expert.Dir()
-	if eids, err := expert.List(expertDir); err == nil {
+	if eids, err := expert.List(expert.Dir()); err == nil {
 		expertIDs = eids
 		for _, id := range eids {
 			if _, ok := expert.Builtins[id]; ok {
@@ -80,9 +76,7 @@ func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadO
 	return nil
 }
 
-// executeTUIRun handles the actual tool dispatch, sending progress messages to BubbleTea.
-// Tool expansion (duplicates or team cross-product) is done in run.go before calling runTUI.
-func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config, prompt string, toolIDs []string, ro config.ReadOnlyMode, expertFlag string, teamFlag string) error {
+func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config, prompt string, toolIDs []string, ro config.ReadOnlyMode, expertFlag, teamFlag string) error {
 	tools, err := buildTools(cfg, toolIDs)
 	if err != nil {
 		return err
@@ -100,7 +94,6 @@ func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config
 	startedAt := time.Now()
 	r := runner.New(cfg.Defaults.MaxParallel)
 
-	// Bridge runner progress to BubbleTea
 	r.SetProgressFunc(func(toolID, event string, result *runner.Result) {
 		switch event {
 		case "started":
@@ -112,7 +105,6 @@ func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config
 		}
 	})
 
-	// Resolve experts
 	expertIDs, expertContents, err := resolveExperts(tools, toolIDs, cfg, expertFlag, teamFlag)
 	if err != nil {
 		return err
@@ -147,7 +139,6 @@ func executeTUIRun(ctx context.Context, program *tea.Program, cfg *config.Config
 	return nil
 }
 
-// isTTYRun returns true when both stdin and stderr are terminals (interactive mode).
 func isTTYRun() bool {
 	return tui.IsTTY() && isStdinTerminal()
 }
@@ -157,7 +148,6 @@ func isStdinTerminal() bool {
 	return (stat.Mode() & os.ModeCharDevice) != 0
 }
 
-// shouldUseTUI returns true when the TUI should be used for `panel run`.
 func shouldUseTUI(jsonOutput, dryRun bool) bool {
 	if jsonOutput || dryRun {
 		return false
@@ -165,7 +155,6 @@ func shouldUseTUI(jsonOutput, dryRun bool) bool {
 	return isTTYRun()
 }
 
-// resolveToolIDsForTUI resolves tool IDs but defers interactive selection to the TUI.
 func resolveToolIDsForTUI(cfg *config.Config, toolsFlag, groupFlag string) (ids []string, preSelected bool, err error) {
 	if toolsFlag != "" {
 		return strings.Split(toolsFlag, ","), true, nil
