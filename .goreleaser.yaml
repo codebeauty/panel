@@ -1,0 +1,63 @@
+version: 2
+
+dist: dist/release
+
+builds:
+  - main: ./cmd/panel
+    binary: panel
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/codebeauty/panel/internal/cli.version={{.Version}}
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+notarize:
+  macos:
+    - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
+      sign:
+        certificate: "{{.Env.MACOS_SIGN_P12}}"
+        password: "{{.Env.MACOS_SIGN_PASSWORD}}"
+      notarize:
+        issuer_id: "{{.Env.MACOS_NOTARY_ISSUER_ID}}"
+        key_id: "{{.Env.MACOS_NOTARY_KEY_ID}}"
+        key: "{{.Env.MACOS_NOTARY_KEY}}"
+        wait: true
+        timeout: 20m
+
+archives:
+  - formats: [tar.gz]
+    name_template: "panel_{{.Version}}_{{.Os}}_{{.Arch}}"
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+
+homebrew_casks:
+  - name: panel
+    repository:
+      owner: codebeauty
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/codebeauty/panel"
+    description: "Fan out prompts to multiple AI coding agents in parallel"
+    license: "MIT"
+    binaries:
+      - panel
+    url:
+      verified: "github.com/codebeauty/panel/releases/download"
+    skip_upload: auto
+    commit_author:
+      name: goreleaser
+      email: goreleaser@codebeauty.com
