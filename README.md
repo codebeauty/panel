@@ -4,9 +4,9 @@
 
 # Panel
 
-A second opinion is good. A panel of experts is better. Fan out prompts to Claude, Gemini, Codex, and more — all at once, all independently.
+A second opinion is good. A panel of experts is better. A panel of expert AIs. One prompt in, independent opinions out.
 
-Inspired by [counselors](https://github.com/aarondfrancis/counselors) by [Aaron Francis](https://github.com/aarondfrancis), but may go different paths. We'll see :) [Why panel?](#why-panel)
+Inspired by [counselors](https://github.com/aarondfrancis/counselors) by [Aaron Francis](https://github.com/aarondfrancis), but may go different paths. We'll see :) So, Panel is provided by [Mathias Bachmann](https://bsky.app/profile/designerdrug.net).
 
 ## Install
 
