@@ -1,189 +1,191 @@
 <p align="center">
-  <img src="assets/panel.svg" alt="panel" width="400">
+  <img src="assets/horde.svg" alt="horde" width="400">
 </p>
 
-# Panel
+# Horde
 
-A second opinion is good. A panel of experts is better. A panel of expert AIs. One prompt in, independent opinions out.
+One prompt. A horde of raiders. Bring back the goop.
 
-Inspired by [counselors](https://github.com/aarondfrancis/counselors) by [Aaron Francis](https://github.com/aarondfrancis), but may go different paths. We'll see :) So, Panel is provided by [Mathias Bachmann](https://bsky.app/profile/designerdrug.net).
+Deploy prompts to multiple AI agents in parallel and collect independent opinions.
+
+Inspired by [counselors](https://github.com/aarondfrancis/counselors) by [Aaron Francis](https://github.com/aarondfrancis), but may go different paths. We'll see :) So, Horde is provided by [Mathias Bachmann](https://bsky.app/profile/designerdrug.net).
 
 ## Install
 
 ### Homebrew (recommended)
 
 ```bash
-brew install codebeauty/tap/panel
+brew install codebeauty/tap/horde
 ```
 
 Or as a cask:
 
 ```bash
-brew install --cask codebeauty/tap/panel
+brew install --cask codebeauty/tap/horde
 ```
 
-> **Note:** for now panel is macOS only (Apple Silicon and Intel).
+> **Note:** for now horde is macOS only (Apple Silicon and Intel).
 
 ## Quick Start
 
 ```bash
-panel init
+horde wake
 
-panel run "review this authentication flow for security issues"
+horde raid "review this authentication flow for security issues"
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `panel run [prompt]` | Dispatch a prompt to AI tools in parallel |
-| `panel summary latest` | Print the most recent run summary |
-| `panel summary list` | List recent runs as detailed cards |
-| `panel cleanup` | Remove old output directories |
-| `panel init` | Auto-discover installed AI CLIs and write config |
-| `panel tools` | Manage configured tools (list, remove, test, discover, rename, add) |
-| `panel groups` | Manage named groups of tools |
-| `panel teams` | Manage expert teams (list, create, delete) |
-| `panel config` | Show resolved configuration |
-| `panel doctor` | Check configuration and tool availability |
-| `panel experts` | Manage experts (list, show, create, edit, reset) |
-| `panel agent` | Print setup instructions for AI agent integration |
-| `panel skill` | Print slash-command template for AI agent integration |
-| `panel ls` | Alias for `panel tools list` |
+| `horde raid [prompt]` | Deploy a prompt to AI agents in parallel |
+| `horde summary latest` | Print the most recent run summary |
+| `horde summary list` | List recent runs as detailed cards |
+| `horde cleanup` | Remove old output directories |
+| `horde wake` | Auto-discover installed AI CLIs and write config |
+| `horde agents` | Manage configured agents (list, remove, test, discover, rename, add) |
+| `horde loadouts` | Manage named loadouts of agents |
+| `horde squads` | Manage raider squads (list, create, delete) |
+| `horde stash` | Show resolved configuration |
+| `horde doctor` | Check configuration and agent availability |
+| `horde raiders` | Manage raiders (list, show, create, edit, reset) |
+| `horde intel` | Print setup instructions for AI agent integration |
+| `horde skill` | Print slash-command template for AI agent integration |
+| `horde ls` | Alias for `horde agents list` |
 
-### `panel run [prompt]`
+### `horde raid [prompt]`
 
-Dispatch a prompt to AI tools in parallel.
+Deploy a prompt to AI agents in parallel.
 
 ```bash
-# Send to all enabled tools
-panel run "review this authentication flow for security issues"
+# Send to all enabled agents
+horde raid "review this authentication flow for security issues"
 
-# Send to specific tools
-panel run -t claude-opus,gemini-3-pro "is this migration safe?"
+# Send to specific agents
+horde raid -a claude-opus,gemini-3-pro "is this migration safe?"
 
-# Use a named group
-panel run -f prompt.md --group smart
+# Use a named loadout
+horde raid -f prompt.md --loadout smart
 
-# Assign an expert to all tools
-panel run -E security "review this authentication flow"
+# Assign a raider to all agents
+horde raid -R security "review this authentication flow"
 
 # Pipe from stdin
-echo "explain this error" | panel run
+echo "explain this error" | horde raid
 
 # Gather context alongside the prompt
-panel run -c . "what does this diff do?"
-panel run -c src/core,src/adapters "review these modules"
+horde raid -c . "what does this diff do?"
+horde raid -c src/core,src/adapters "review these modules"
 ```
 
 ```
 Flags:
-  -t, --tools <ids>        Comma-separated tool IDs
-  -g, --group <name>       Named group from config
+  -a, --agents <ids>       Comma-separated agent IDs
+  -l, --loadout <name>     Named loadout from config
   -r, --read-only <mode>   enforced, bestEffort, or none
-      --timeout <seconds>  Per-tool timeout (default: 540)
+      --timeout <seconds>  Per-agent timeout (default: 540)
   -o, --output <dir>       Output directory override
       --json               Output manifest as JSON
   -f, --file <path>        Read prompt from file
       --dry-run            Show invocations without executing
   -c, --context <paths>    Gather context (comma-separated paths, or "." for git diff)
-  -E, --expert <id>        Expert to apply to all tools (overrides per-tool config)
-  -T, --team <name>        Named team of experts (cross-product dispatch)
+  -R, --raider <id>        Raider to apply to all agents (overrides per-agent config)
+  -S, --squad <name>       Named squad of raiders (cross-product deploy)
       --yes                Skip confirmation prompts
 ```
 
-`--team` and `--expert` are mutually exclusive.
+`--squad` and `--raider` are mutually exclusive.
 
-When running interactively with multiple tools and no `--tools`/`--group` flag, panel shows a numbered list for selection.
+When running interactively with multiple agents and no `--agents`/`--loadout` flag, horde shows a numbered list for selection.
 
-### `panel summary`
+### `horde summary`
 
 View run summaries and browse run history.
 
 ```bash
-panel summary latest              # Print the most recent summary
-panel summary latest --path       # Print the run directory path (for scripting)
-panel summary latest --json       # Print the run manifest (run.json) instead
-panel summary list                # List recent runs as detailed cards
-panel summary list --limit 5      # Show only the last 5 runs
-panel summary list --json         # Output as JSON array of manifests
+horde summary latest              # Print the most recent summary
+horde summary latest --path       # Print the run directory path (for scripting)
+horde summary latest --json       # Print the run manifest (run.json) instead
+horde summary list                # List recent runs as detailed cards
+horde summary list --limit 5      # Show only the last 5 runs
+horde summary list --json         # Output as JSON array of manifests
 ```
 
-Both subcommands accept `-o, --output-dir` to override the output directory. Without it, the configured output directory is used (respecting project-level `.panel.json` overrides).
+Both subcommands accept `-o, --output-dir` to override the output directory. Without it, the configured output directory is used (respecting project-level `.horde.json` overrides).
 
 Example output:
 
 ```
-─── 2026-02-23 00:36 ───
+--- 2026-02-23 00:36 ---
 Prompt: Give me a compact idea how to build a SwiftUI app which use ...
-Tools:  claude (✓ 22.171s), gemini (✓ 38.357s)
-Path:   agents/panel/give-me-a-compact-idea-...-1771803377
+Agents: claude (ok 22.171s), gemini (ok 38.357s)
+Path:   agents/horde/give-me-a-compact-idea-...-1771803377
 
-─── 2026-02-23 00:07 ───
+--- 2026-02-23 00:07 ---
 Prompt: Audit my config for any potential issues
-Tools:  claude (✓ 15.2s), codex (✗ 28.1s), gemini (✓ 22.4s)
-Path:   agents/panel/audit-my-config-...-1771801594
+Agents: claude (ok 15.2s), codex (fail 28.1s), gemini (ok 22.4s)
+Path:   agents/horde/audit-my-config-...-1771801594
 ```
 
-### `panel cleanup`
+### `horde cleanup`
 
 Remove old output directories.
 
 ```bash
-panel cleanup                        # Remove runs older than 1 day (interactive)
-panel cleanup --older-than 2w        # Remove runs older than 2 weeks
-panel cleanup --dry-run              # Show what would be removed
-panel cleanup --older-than 30m -y    # Remove runs older than 30 minutes, skip confirmation
-panel cleanup --json                 # Output results as JSON
+horde cleanup                        # Remove runs older than 1 day (interactive)
+horde cleanup --older-than 2w        # Remove runs older than 2 weeks
+horde cleanup --dry-run              # Show what would be removed
+horde cleanup --older-than 30m -y    # Remove runs older than 30 minutes, skip confirmation
+horde cleanup --json                 # Output results as JSON
 ```
 
 Supports duration suffixes: `ms`, `s`, `m`, `h`, `d`, `w`. A bare number is interpreted as days.
 
-### `panel init`
+### `horde wake`
 
 Auto-discover installed AI CLIs and write config.
 
 ```bash
-panel init
+horde wake
 ```
 
-Scans for `claude`, `codex`, `gemini`, and `amp` binaries in PATH, `/opt/homebrew/bin`, `/usr/local/bin`, and `~/.local/bin`. Registers all model variants per adapter with recommended models enabled by default. Also syncs built-in expert presets to `~/.config/panel/experts/` (existing customizations are preserved).
+Scans for `claude`, `codex`, `gemini`, and `amp` binaries in PATH, `/opt/homebrew/bin`, `/usr/local/bin`, and `~/.local/bin`. Registers all model variants per adapter with recommended models enabled by default. Also syncs built-in raider presets to the raiders directory (existing customizations are preserved).
 
-### `panel tools`
+### `horde agents`
 
-Manage configured tools.
+Manage configured agents.
 
 ```bash
-panel tools list              # Show all tools (alias: panel ls)
-panel tools remove <id>       # Remove a tool
-panel tools test [id...]      # Test tools with "Reply OK" prompt
-panel tools discover          # Scan for new tools not yet configured
+horde agents list              # Show all agents (alias: horde ls)
+horde agents remove <id>       # Remove an agent
+horde agents test [id...]      # Test agents with "Reply OK" prompt
+horde agents discover          # Scan for new agents not yet configured
 ```
 
-### `panel groups`
+### `horde loadouts`
 
-Manage named groups of tools.
+Manage named loadouts of agents.
 
 ```bash
-panel groups create smart --tools claude-opus,gemini-3-pro
-panel groups list
-panel groups delete smart
+horde loadouts create smart --agents claude-opus,gemini-3-pro
+horde loadouts list
+horde loadouts delete smart
 ```
 
-### `panel experts`
+### `horde raiders`
 
-Manage experts — expert roles that shape how AI tools respond to the same prompt.
+Manage raiders — role presets that shape how AI agents respond to the same prompt.
 
 ```bash
-panel experts list              # List all experts (built-in + custom)
-panel experts show security     # Print expert contents
-panel experts create my-expert  # Create custom expert (opens $EDITOR)
-panel experts edit security     # Edit existing expert (opens $EDITOR)
-panel experts reset             # Re-sync built-in presets
-panel experts delete <id>    # Delete an expert (--force to ignore team refs)
+horde raiders list              # List all raiders (built-in + custom)
+horde raiders show security     # Print raider contents
+horde raiders create my-raider  # Create custom raider (opens $EDITOR)
+horde raiders edit security     # Edit existing raider (opens $EDITOR)
+horde raiders reset             # Re-sync built-in presets
+horde raiders delete <id>       # Delete a raider (--force to ignore squad refs)
 ```
 
-Panel ships 6 built-in experts:
+Horde ships 6 built-in raiders:
 
 | ID | Role |
 |----|------|
@@ -194,16 +196,16 @@ Panel ships 6 built-in experts:
 | `devil` | Devil's advocate — challenge assumptions, find flaws, argue the opposite |
 | `product` | Product lead — user impact, acceptance criteria, prioritization |
 
-Experts are markdown files stored in `~/.config/panel/experts/`. Create custom experts by adding `.md` files to that directory or using `panel experts create`.
+Raiders are markdown files stored in the raiders directory. Create custom raiders by adding `.md` files to that directory or using `horde raiders create`.
 
-#### Creating a custom expert
+#### Creating a custom raider
 
 ```bash
 # Option 1: Use the create command (opens $EDITOR)
-panel experts create golang-expert
+horde raiders create golang-expert
 
 # Option 2: Write the file directly
-cat > ~/.config/panel/experts/golang-expert.md << 'EOF'
+cat > ~/Library/Application\ Support/horde/raiders/golang-expert.md << 'EOF'
 You are a senior Go developer reviewing for idiomatic patterns.
 
 Focus on:
@@ -217,21 +219,21 @@ Be specific: point to the exact line, explain why it's wrong, and provide a corr
 EOF
 ```
 
-The expert ID is the filename without `.md` — use letters, numbers, hyphens, underscores, and dots.
+The raider ID is the filename without `.md` — use letters, numbers, hyphens, underscores, and dots.
 
-#### Using experts
+#### Using raiders
 
 ```bash
-# Apply an expert to all tools for one run
-panel run -E security "review this authentication flow"
+# Apply a raider to all agents for one run
+horde raid -R security "review this authentication flow"
 
-# Without -E, no expert is used — the prompt is sent as-is
-panel run "review this code"
+# Without -R, no raider is used — the prompt is sent as-is
+horde raid "review this code"
 ```
 
-#### Per-tool experts in config
+#### Per-agent raiders in config
 
-Assign default experts to specific tools in `config.json` so each tool always adopts a different expert role:
+Assign default raiders to specific agents in `config.json` so each agent always adopts a different raider role:
 
 ```json
 {
@@ -259,48 +261,48 @@ Assign default experts to specific tools in `config.json` so each tool always ad
 }
 ```
 
-In this setup, `panel run "review this code"` sends the prompt to all three tools — Claude answers as a security engineer, Gemini as an architect, and Codex answers without an expert. The `-E` flag overrides all per-tool experts for a single run.
+In this setup, `horde raid "review this code"` sends the prompt to all three agents — Claude answers as a security engineer, Gemini as an architect, and Codex answers without a raider. The `-R` flag overrides all per-agent raiders for a single run.
 
-When an expert is active, the prompt is prepended with the expert's role instructions. Each tool gets its own prompt file (`<tool-id>.prompt.md`) in the output directory. The original `prompt.md` is always preserved without expert modifications.
+When a raider is active, the prompt is prepended with the raider's role instructions. Each agent gets its own prompt file (`<agent-id>.prompt.md`) in the output directory. The original `prompt.md` is always preserved without raider modifications.
 
-### `panel teams`
+### `horde squads`
 
-Manage named teams of experts. A team is a reusable list of expert IDs. When used with `--team`, panel creates a cross-product: each tool runs once per expert in the team.
-
-```bash
-panel teams list                                     # List all teams
-panel teams create code-review --experts security,architect,reviewer
-panel teams delete code-review
-```
-
-#### Using teams
+Manage named squads of raiders. A squad is a reusable list of raider IDs. When used with `--squad`, horde creates a cross-product: each agent runs once per raider in the squad.
 
 ```bash
-# Run with a team — creates tool × expert cross-product
-panel run -T code-review "review this module"
-
-# Combine with tool selection (2 tools × 3 experts = 6 runs)
-panel run -t claude-opus,gemini-3-pro -T code-review "review this code"
+horde squads list                                     # List all squads
+horde squads create code-review --raiders security,architect,reviewer
+horde squads delete code-review
 ```
 
-Each tool runs independently with each expert. The composite IDs use `@` as separator (e.g., `claude-opus@security`, `gemini-3-pro@architect`). When the cross-product exceeds 8 runs, panel prompts for confirmation (skip with `--yes`).
+#### Using squads
 
-### `panel skill`
+```bash
+# Run with a squad — creates agent x raider cross-product
+horde raid -S code-review "review this module"
+
+# Combine with agent selection (2 agents x 3 raiders = 6 runs)
+horde raid -a claude-opus,gemini-3-pro -S code-review "review this code"
+```
+
+Each agent runs independently with each raider. The composite IDs use `@` as separator (e.g., `claude-opus@security`, `gemini-3-pro@architect`). When the cross-product exceeds 8 runs, horde prompts for confirmation (skip with `--yes`).
+
+### `horde skill`
 
 Print a 7-phase slash-command template for AI agent integration.
 
 ## Configuration
 
-Global config: `~/Library/Application Support/panel/config.json`
+Global config: `~/Library/Application Support/horde/config.json`
 
-Project overrides: `.panel.json` in the project root (merges with global; read-only mode can only be tightened, not loosened).
+Project overrides: `.horde.json` in the project root (merges with global; read-only mode can only be tightened, not loosened).
 
 ```json
 {
   "version": 1,
   "defaults": {
     "timeout": 540,
-    "outputDir": "./agents/panel",
+    "outputDir": "./agents/horde",
     "readOnly": "bestEffort",
     "maxParallel": 4
   },
@@ -323,48 +325,48 @@ Project overrides: `.panel.json` in the project root (merges with global; read-o
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `timeout` | 540 | Per-tool timeout in seconds |
-| `outputDir` | `./agents/panel` | Base directory for run output |
+| `timeout` | 540 | Per-agent timeout in seconds |
+| `outputDir` | `./agents/horde` | Base directory for run output |
 | `readOnly` | `bestEffort` | `enforced`, `bestEffort`, or `none` |
-| `maxParallel` | 4 | Max tools running concurrently |
+| `maxParallel` | 4 | Max agents running concurrently |
 
-Per-tool fields:
+Per-agent fields:
 
 | Field | Description |
 |-------|-------------|
-| `expert` | Default expert ID for this tool (overridden by `-E` flag) |
+| `expert` | Default raider ID for this agent (overridden by `-R` flag) |
 
 ## Output Structure
 
 Each run creates a timestamped directory:
 
 ```
-agents/panel/
-└── review-auth-flow-1770676882/
-    ├── prompt.md              # Original prompt (without expert)
-    ├── run.json               # Manifest with metadata
-    ├── summary.md             # Heuristic summary (no LLM)
-    ├── claude-opus.md         # Claude's response
-    ├── claude-opus.stderr     # Claude's stderr
-    ├── claude-opus.prompt.md  # Per-tool prompt with expert (if expert used)
-    ├── gemini-3-pro.md        # Gemini's response
-    ├── gemini-3-pro.stderr    # Gemini's stderr
-    ├── claude-opus@security.md         # Team run: Claude as security expert
-    ├── claude-opus@security.prompt.md  # Per-tool prompt with expert
-    ├── gemini-3-pro@architect.md       # Team run: Gemini as architect
-    └── gemini-3-pro@architect.stderr
+agents/horde/
+  review-auth-flow-1770676882/
+    prompt.md              # Original prompt (without raider)
+    run.json               # Manifest with metadata
+    summary.md             # Heuristic summary (no LLM)
+    claude-opus.md         # Claude's response
+    claude-opus.stderr     # Claude's stderr
+    claude-opus.prompt.md  # Per-agent prompt with raider (if raider used)
+    gemini-3-pro.md        # Gemini's response
+    gemini-3-pro.stderr    # Gemini's stderr
+    claude-opus@security.md         # Squad run: Claude as security raider
+    claude-opus@security.prompt.md  # Per-agent prompt with raider
+    gemini-3-pro@architect.md       # Squad run: Gemini as architect
+    gemini-3-pro@architect.stderr
 ```
 
-When using `--team`, output files use composite IDs (`tool@expert`).
+When using `--squad`, output files use composite IDs (`agent@raider`).
 
-Use `panel summary latest` to quickly view the most recent result, or `--json` on `panel run` to get the manifest on stdout for programmatic consumption.
+Use `horde summary latest` to quickly view the most recent result, or `--json` on `horde raid` to get the manifest on stdout for programmatic consumption.
 
-## Duplicate Tool Runs
+## Duplicate Agent Runs
 
-Run the same tool multiple times by repeating its ID:
+Run the same agent multiple times by repeating its ID:
 
 ```bash
-panel run -t claude-opus,claude-opus,claude-opus "review this code"
+horde raid -a claude-opus,claude-opus,claude-opus "review this code"
 ```
 
 Creates three independent runs as `claude-opus`, `claude-opus__2`, `claude-opus__3`.
@@ -373,15 +375,15 @@ Creates three independent runs as `claude-opus`, `claude-opus__2`, `claude-opus_
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for build instructions, adapter details, project structure, and security documentation.
 
-## Why panel?
+## Why horde?
 
 Same prompt fan-out pattern as [counselors](https://github.com/aarondfrancis/counselors), rewritten in Go.
 
-|                  | panel | counselors |
+|                  | horde | counselors |
 |------------------|-------|------------|
 | Runtime deps     | None  | Node.js 20+|
 | Install size     | ~3 MB | ~102 MB    |
 | Startup          | ~4 ms | ~120 ms    |
 | Peak memory      | ~5 MB | ~65 MB     |
 
-Both dispatch to the same AI CLIs — response times depend on the AI provider, not the tool.
+Both deploy to the same AI CLIs — response times depend on the AI provider, not the tool.

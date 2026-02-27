@@ -6,8 +6,8 @@ var version = "dev"
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:     "panel",
-		Short:   "Fan out prompts to multiple AI coding agents in parallel",
+		Use:     "horde",
+		Short:   "Deploy prompts to a horde of AI agents in parallel",
 		Version: version,
 	}
 
@@ -31,7 +31,7 @@ func newRootCmd() *cobra.Command {
 
 	lsCmd := &cobra.Command{
 		Use:   "ls",
-		Short: "List configured tools (alias for 'tools list')",
+		Short: "List configured agents",
 		RunE:  newToolsListCmd().RunE,
 	}
 	root.AddCommand(lsCmd)

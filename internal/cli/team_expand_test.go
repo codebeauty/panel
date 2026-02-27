@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/codebeauty/panel/internal/config"
+	"github.com/codebeauty/horde/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,13 +64,13 @@ func TestExpandTeamUnknownTool(t *testing.T) {
 
 	_, err := expandTeamCrossProduct([]string{"nonexistent"}, []string{"security"}, cfg)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "unknown tool")
+	assert.Contains(t, err.Error(), "unknown agent")
 	assert.Contains(t, err.Error(), "nonexistent")
 }
 
 func TestResolveTeamExperts(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "security.md"), []byte("You are a security expert."), 0o600)
+	os.WriteFile(filepath.Join(dir, "security.md"), []byte("You are a security raider."), 0o600)
 	os.WriteFile(filepath.Join(dir, "architect.md"), []byte("You are an architect."), 0o600)
 
 	ids, contents, err := resolveTeamExperts(
@@ -79,7 +79,7 @@ func TestResolveTeamExperts(t *testing.T) {
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"security", "architect", "architect"}, ids)
-	assert.Equal(t, "You are a security expert.", contents[0])
+	assert.Equal(t, "You are a security raider.", contents[0])
 	assert.Equal(t, "You are an architect.", contents[1])
 	assert.Equal(t, "You are an architect.", contents[2]) // cached
 }

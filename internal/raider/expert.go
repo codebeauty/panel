@@ -1,4 +1,4 @@
-package expert
+package raider
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/codebeauty/panel/internal/config"
+	"github.com/codebeauty/horde/internal/config"
 )
 
 var validID = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
@@ -16,15 +16,25 @@ var validID = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 // ValidateID checks that an expert ID is safe for use as a filename.
 func ValidateID(id string) error {
 	if !validID.MatchString(id) {
-		return fmt.Errorf("invalid expert ID %q: must match [a-zA-Z0-9._-]+", id)
+		return fmt.Errorf("invalid raider ID %q: must match [a-zA-Z0-9._-]+", id)
 	}
 	return nil
 }
 
-// Dir returns the path to the experts directory,
-// derived from the global config directory.
+// Dir returns the path to the raiders directory,
+// derived from the global config directory. Tries "raiders" first,
+// falls back to "experts" for backward compatibility.
 func Dir() string {
-	return filepath.Join(config.GlobalConfigDir(), "experts")
+	base := config.GlobalConfigDir()
+	raidersDir := filepath.Join(base, "raiders")
+	if _, err := os.Stat(raidersDir); err == nil {
+		return raidersDir
+	}
+	expertsDir := filepath.Join(base, "experts")
+	if _, err := os.Stat(expertsDir); err == nil {
+		return expertsDir
+	}
+	return raidersDir // default to new name
 }
 
 // Load reads an expert file by ID from the given directory.
@@ -36,11 +46,11 @@ func Load(id, dir string) (string, error) {
 	path := filepath.Join(dir, id+".md")
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", fmt.Errorf("expert %q not found: %w", id, err)
+		return "", fmt.Errorf("raider %q not found: %w", id, err)
 	}
 	content := string(data)
 	if strings.TrimSpace(content) == "" {
-		return "", fmt.Errorf("expert %q is empty", id)
+		return "", fmt.Errorf("raider %q is empty", id)
 	}
 	return content, nil
 }

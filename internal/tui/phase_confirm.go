@@ -15,7 +15,7 @@ type ConfirmModel struct {
 func (m ConfirmModel) View() string {
 	var b strings.Builder
 
-	title := StyleTitle.Render("Confirm Dispatch")
+	title := StyleTitle.Render("Confirm Deploy")
 	b.WriteString(fmt.Sprintf("  %s\n\n", title))
 
 	// Prompt preview (truncated)
@@ -33,12 +33,12 @@ func (m ConfirmModel) View() string {
 	}
 	b.WriteString(fmt.Sprintf("  %s   %s\n", StyleBold.Render("Tools:"), strings.Join(displayIDs, ", ")))
 
-	// Expert
+	// Raider
 	if m.Expert != "" {
-		b.WriteString(fmt.Sprintf("  %s  %s\n", StyleBold.Render("Expert:"), m.Expert))
+		b.WriteString(fmt.Sprintf("  %s  %s\n", StyleBold.Render("Raider:"), m.Expert))
 	}
 
-	hints := "enter:dispatch"
+	hints := "enter:deploy"
 	if m.CanGoBack {
 		hints += "  esc:back"
 	}

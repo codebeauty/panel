@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/codebeauty/panel/internal/runner"
+	"github.com/codebeauty/horde/internal/runner"
 )
 
 const summaryChrome = 7 // title + blank + tab bar + separator + blank + footer output + footer keys
@@ -216,11 +216,12 @@ func (m SummaryModel) View() string {
 	return b.String()
 }
 
+var styleIndent = lipgloss.NewStyle().PaddingLeft(2)
+
 func (m SummaryModel) indentViewport() string {
 	lines := strings.Split(m.viewport.View(), "\n")
-	indent := lipgloss.NewStyle().PaddingLeft(2)
 	for i, line := range lines {
-		lines[i] = indent.Render(line)
+		lines[i] = styleIndent.Render(line)
 	}
 	return strings.Join(lines, "\n")
 }

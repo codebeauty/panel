@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel — A second opinion is good. A panel of experts is better.</title>
-  <meta name="description" content="A panel of expert AIs. One prompt in, independent opinions out.">
-  <meta property="og:title" content="Panel — A panel of AI experts">
-  <meta property="og:description" content="A panel of expert AIs. One prompt in, independent opinions out.">
+  <title>Horde — One prompt. A horde of raiders. Bring back the goop.</title>
+  <meta name="description" content="One prompt. A horde of AI raiders. Bring back the goop.">
+  <meta property="og:title" content="Horde — A horde of AI raiders">
+  <meta property="og:description" content="One prompt. A horde of AI raiders. Bring back the goop.">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="https://codebeauty.github.io/panel/og.png">
+  <meta property="og:image" content="https://codebeauty.github.io/horde/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://codebeauty.github.io/panel/og.png">
+  <meta name="twitter:image" content="https://codebeauty.github.io/horde/og.png">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
   <script>
     // Apply theme before first paint to prevent flash
@@ -86,11 +86,11 @@
     .hero .tagline {
       font-family: "Instrument Serif", serif;
       font-style: italic;
-      font-size: 4rem;
+      font-size: 3.4rem;
       font-weight: 400;
       line-height: 1.2;
       color: var(--gray-900);
-      max-width: 660px;
+      max-width: 680px;
       margin: 0 auto 16px;
     }
 
@@ -627,16 +627,16 @@
         </g>
       </g>
     </svg>
-    <h1>Panel</h1>
-    <p class="tagline">A second opinion is good.<br>A panel of experts is better.</p>
-    <p class="subtitle">A panel of expert AIs. One prompt in, independent opinions out.</p>
+    <h1>Horde</h1>
+    <p class="tagline">One prompt. A horde of raiders.<br>Bring back the goop.</p>
+    <p class="subtitle">Deploy prompts to a horde of AI agents. Bring back independent opinions.</p>
   </div>
 
   <!-- Install -->
   <div class="install">
     <div class="install-box" onclick="copyInstall(this)">
       <span class="prompt">$</span>
-      <span>brew install codebeauty/tap/panel</span>
+      <span>brew install codebeauty/tap/horde</span>
       <span class="copy-hint">click to copy</span>
     </div>
     <p class="install-note"></span>macOS only (Apple Silicon &amp; Intel) <span id="version-tag"/></p>
@@ -646,25 +646,25 @@
   <section>
     <h2>Quick start</h2>
     <pre><span class="comment"># Discover installed AI CLIs and create config</span>
-<span class="cmd">panel init</span>
+<span class="cmd">horde wake</span>
 
 <span class="comment"># Send a prompt to all enabled tools</span>
-<span class="cmd">panel run</span> <span class="string">"review this authentication flow for security issues"</span>
+<span class="cmd">horde raid</span> <span class="string">"review this authentication flow for security issues"</span>
 
-<span class="comment"># Send to specific tools</span>
-<span class="cmd">panel run</span> <span class="flag">-t</span> claude-opus,gemini-3-pro <span class="string">"is this migration safe?"</span>
+<span class="comment"># Send to specific agents</span>
+<span class="cmd">horde raid</span> <span class="flag">-a</span> claude-opus,gemini-3-pro <span class="string">"is this migration safe?"</span>
 
-<span class="comment"># Use a named group</span>
-<span class="cmd">panel run</span> <span class="flag">-f</span> prompt.md <span class="flag">--group</span> smart
+<span class="comment"># Use a named loadout</span>
+<span class="cmd">horde raid</span> <span class="flag">-f</span> prompt.md <span class="flag">--loadout</span> smart
 
-<span class="comment"># Apply an expert for a focused review</span>
-<span class="cmd">panel run</span> <span class="flag">-E</span> security <span class="string">"review this authentication flow"</span>
+<span class="comment"># Apply a raider for a focused review</span>
+<span class="cmd">horde raid</span> <span class="flag">-R</span> security <span class="string">"review this authentication flow"</span>
 
-<span class="comment"># Use a team — each tool × each expert</span>
-<span class="cmd">panel run</span> <span class="flag">-T</span> code-review <span class="string">"review this code"</span>
+<span class="comment"># Use a squad — each agent × each raider</span>
+<span class="cmd">horde raid</span> <span class="flag">-S</span> code-review <span class="string">"review this code"</span>
 
 <span class="comment"># Pipe from stdin</span>
-echo <span class="string">"explain this error"</span> | <span class="cmd">panel run</span></pre>
+echo <span class="string">"explain this error"</span> | <span class="cmd">horde raid</span></pre>
   </section>
 
   <!-- Features -->
@@ -689,22 +689,22 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
       <div class="feature span-2">
         <div class="feature-icon" style="background: #0a0a0a1a; color: var(--gray-700);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg></div>
         <h3>Zero config start</h3>
-        <p><code>panel init</code> auto-discovers installed CLIs and writes a working config in seconds.</p>
+        <p><code>horde wake</code> auto-discovers installed CLIs and writes a working config in seconds.</p>
       </div>
       <div class="feature span-full">
         <div class="feature-icon" style="background: #fc51301a; color: var(--red);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg></div>
         <div class="feature-text">
-          <h3>Expert teams</h3>
-          <p>Group experts into reusable teams. One flag dispatches a cross-product of tools and perspectives.</p>
+          <h3>Raider squads</h3>
+          <p>Group raiders into reusable squads. One flag deploys a cross-product of agents and perspectives.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Experts -->
+  <!-- Raiders -->
   <section>
-    <h2>Experts <span class="beta-badge"><svg class="beta-badge-bg" viewBox="151 -1 155 141" xmlns="http://www.w3.org/2000/svg"><path d="M261.71214,1.45769584 C264.798439,2.45811901 267.471987,4.00169268 269.881529,6.17429468 C272.29107,8.34689668 274.111761,10.5858812 278.091097,17.4782927 L297.908903,51.8037396 C301.888239,58.6961511 302.91691,61.3924083 303.593668,64.5654335 C304.270426,67.7384586 304.270426,70.825606 303.593668,73.9986311 C302.91691,77.1716563 301.888239,79.8679135 297.908903,86.760325 L278.091097,121.085772 C274.111761,127.978183 272.29107,130.217168 269.881529,132.38977 C267.471987,134.562372 264.798439,136.105946 261.71214,137.106369 C258.62584,138.106792 255.776477,138.564065 247.817806,138.564065 L208.182194,138.564065 C200.223523,138.564065 197.37416,138.106792 194.28786,137.106369 C191.201561,136.105946 188.528013,134.562372 186.118471,132.38977 C186.020123,132.301092 185.922755,132.212304 185.826182,132.123093 L185.538657,131.853882 C183.397289,129.82061 181.563395,127.415538 177.908903,121.085772 L158.091097,86.760325 C154.111761,79.8679135 153.08309,77.1716563 152.406332,73.9986311 C151.729574,70.825606 151.729574,67.7384586 152.406332,64.5654335 C153.08309,61.3924083 154.111761,58.6961511 158.091097,51.8037396 L177.908903,17.4782927 C181.563395,11.148527 183.397289,8.7434551 185.538657,6.71018289 L185.826182,6.44097127 C185.922755,6.35176054 186.020123,6.26297231 186.118471,6.17429468 C188.528013,4.00169268 191.201561,2.45811901 194.28786,1.45769584 C197.311174,0.477689469 200.107123,0.0188904091 207.701267,0.000572082723 L247.817806,0 C255.776477,0 258.62584,0.45727267 261.71214,1.45769584 Z" fill="#fc5130"/></svg><span class="beta-badge-text">Beta</span></span></h2>
-    <p class="experts-intro">Assign expert roles to each tool. Same prompt, different perspectives — a security review, architecture review, and product review in parallel.</p>
+    <h2>Raiders <span class="beta-badge"><svg class="beta-badge-bg" viewBox="151 -1 155 141" xmlns="http://www.w3.org/2000/svg"><path d="M261.71214,1.45769584 C264.798439,2.45811901 267.471987,4.00169268 269.881529,6.17429468 C272.29107,8.34689668 274.111761,10.5858812 278.091097,17.4782927 L297.908903,51.8037396 C301.888239,58.6961511 302.91691,61.3924083 303.593668,64.5654335 C304.270426,67.7384586 304.270426,70.825606 303.593668,73.9986311 C302.91691,77.1716563 301.888239,79.8679135 297.908903,86.760325 L278.091097,121.085772 C274.111761,127.978183 272.29107,130.217168 269.881529,132.38977 C267.471987,134.562372 264.798439,136.105946 261.71214,137.106369 C258.62584,138.106792 255.776477,138.564065 247.817806,138.564065 L208.182194,138.564065 C200.223523,138.564065 197.37416,138.106792 194.28786,137.106369 C191.201561,136.105946 188.528013,134.562372 186.118471,132.38977 C186.020123,132.301092 185.922755,132.212304 185.826182,132.123093 L185.538657,131.853882 C183.397289,129.82061 181.563395,127.415538 177.908903,121.085772 L158.091097,86.760325 C154.111761,79.8679135 153.08309,77.1716563 152.406332,73.9986311 C151.729574,70.825606 151.729574,67.7384586 152.406332,64.5654335 C153.08309,61.3924083 154.111761,58.6961511 158.091097,51.8037396 L177.908903,17.4782927 C181.563395,11.148527 183.397289,8.7434551 185.538657,6.71018289 L185.826182,6.44097127 C185.922755,6.35176054 186.020123,6.26297231 186.118471,6.17429468 C188.528013,4.00169268 191.201561,2.45811901 194.28786,1.45769584 C197.311174,0.477689469 200.107123,0.0188904091 207.701267,0.000572082723 L247.817806,0 C255.776477,0 258.62584,0.45727267 261.71214,1.45769584 Z" fill="#fc5130"/></svg><span class="beta-badge-text">Beta</span></span></h2>
+    <p class="experts-intro">Assign raider roles to each agent. Same prompt, different perspectives — a security review, architecture review, and product review in parallel.</p>
     <div class="experts">
       <div class="expert-card">
         <div class="expert-avatar">
@@ -755,47 +755,47 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
         <div class="expert-role">User impact, acceptance criteria, prioritization, market fit, accessibility</div>
       </div>
     </div>
-    <pre><span class="comment"># Apply an expert to all tools</span>
-<span class="cmd">panel run</span> <span class="flag">-E</span> security <span class="string">"review this authentication flow"</span>
+    <pre><span class="comment"># Apply a raider to all agents</span>
+<span class="cmd">horde raid</span> <span class="flag">-R</span> security <span class="string">"review this authentication flow"</span>
 
-<span class="comment"># Or assign different experts per tool in config</span>
-<span class="cmd">panel run</span> <span class="string">"review this code"</span>   <span class="comment"># each tool uses its configured expert</span>
+<span class="comment"># Or assign different raiders per agent in config</span>
+<span class="cmd">horde raid</span> <span class="string">"review this code"</span>   <span class="comment"># each agent uses its configured raider</span>
 
 <span class="comment"># Create your own</span>
-<span class="cmd">panel experts create</span> my-golang-expert</pre>
-    <p class="expert-note">6 built-in presets. Create unlimited custom experts as markdown files.</p>
-    <h3 style="margin-top: 32px; font-size: 1.1rem; font-weight: 600;">Teams</h3>
-    <p class="experts-intro" style="margin-top: 12px;">Group experts into reusable teams. A single flag runs every tool with every expert &mdash; one prompt, multiple perspectives.</p>
-    <pre><span class="comment"># Create a team</span>
-<span class="cmd">panel teams create</span> code-review <span class="flag">--experts</span> security,architect,reviewer
+<span class="cmd">horde raiders create</span> my-golang-expert</pre>
+    <p class="expert-note">6 built-in presets. Create unlimited custom raiders as markdown files.</p>
+    <h3 style="margin-top: 32px; font-size: 1.1rem; font-weight: 600;">Squads</h3>
+    <p class="experts-intro" style="margin-top: 12px;">Group raiders into reusable squads. A single flag runs every agent with every raider &mdash; one prompt, multiple perspectives.</p>
+    <pre><span class="comment"># Create a squad</span>
+<span class="cmd">horde squads create</span> code-review <span class="flag">--raiders</span> security,architect,reviewer
 
-<span class="comment"># Run with a team (2 tools &times; 3 experts = 6 parallel runs)</span>
-<span class="cmd">panel run</span> <span class="flag">-t</span> claude-opus,gemini-3-pro <span class="flag">-T</span> code-review <span class="string">"review this code"</span></pre>
+<span class="comment"># Run with a squad (2 agents &times; 3 raiders = 6 parallel runs)</span>
+<span class="cmd">horde raid</span> <span class="flag">-a</span> claude-opus,gemini-3-pro <span class="flag">-S</span> code-review <span class="string">"review this code"</span></pre>
   </section>
 
   <!-- Output -->
   <section>
     <h2>Output structure</h2>
     <div class="tree">
-<span class="dir">agents/panel/</span>
+<span class="dir">agents/horde/</span>
 <span class="dir">  review-auth-flow-1770676882/</span>
-    <span class="file">prompt.md</span>                <span class="desc"># original prompt (without expert)</span>
+    <span class="file">prompt.md</span>                <span class="desc"># original prompt (without raider)</span>
     <span class="file">run.json</span>                 <span class="desc"># manifest with metadata</span>
     <span class="file">summary.md</span>               <span class="desc"># heuristic summary</span>
     <span class="file">claude-opus.md</span>           <span class="desc"># Claude's response</span>
     <span class="file">claude-opus.stderr</span>       <span class="desc"># Claude's stderr</span>
-    <span class="file">claude-opus.prompt.md</span>    <span class="desc"># per-tool prompt with expert</span>
+    <span class="file">claude-opus.prompt.md</span>    <span class="desc"># per-agent prompt with raider</span>
     <span class="file">gemini-3-pro.md</span>          <span class="desc"># Gemini's response</span>
     <span class="file">gemini-3-pro.stderr</span>      <span class="desc"># Gemini's stderr</span>
-    <span class="comment"># With --team, output uses tool@expert IDs:</span>
-    <span class="file">claude-opus@security.md</span>      <span class="desc"># Claude as security expert</span>
-    <span class="file">claude-opus@security.prompt.md</span> <span class="desc"># per-tool prompt</span>
+    <span class="comment"># With --squad, output uses agent@raider IDs:</span>
+    <span class="file">claude-opus@security.md</span>      <span class="desc"># Claude as security raider</span>
+    <span class="file">claude-opus@security.prompt.md</span> <span class="desc"># per-agent prompt</span>
     </div>
   </section>
 
   <!-- Comparison -->
   <section>
-    <h2>Why panel?</h2>
+    <h2>Why horde?</h2>
     <p style="color: var(--gray-500); margin-bottom: 20px;">
       Inspired by <a href="https://github.com/aarondfrancis/counselors" style="color: var(--gray-700); text-decoration: underline;">counselors</a> by Aaron Francis, rewritten in Go.
     </p>
@@ -803,7 +803,7 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
       <thead>
         <tr>
           <th></th>
-          <th>panel</th>
+          <th>horde</th>
           <th>counselors</th>
         </tr>
       </thead>
@@ -839,9 +839,9 @@ echo <span class="string">"explain this error"</span> | <span class="cmd">panel 
 <footer>
   <div class="container">
     <div class="footer-links">
-      <a href="https://github.com/codebeauty/panel">GitHub</a>
-      <a href="https://github.com/codebeauty/panel/releases">Releases</a>
-      <a href="https://github.com/codebeauty/panel/blob/main/README.md">Docs</a>
+      <a href="https://github.com/codebeauty/horde">GitHub</a>
+      <a href="https://github.com/codebeauty/horde/releases">Releases</a>
+      <a href="https://github.com/codebeauty/horde/blob/main/README.md">Docs</a>
       <a href="https://bsky.app/profile/designerdrug.net">Bluesky</a>
     </div>
     <p class="footer-credit">Built out of curiosity by <a href="https://github.com/codebeauty">Mathias Bachmann</a></p>
@@ -857,7 +857,7 @@ function toggleTheme() {
 }
 
 function copyInstall(el) {
-  navigator.clipboard.writeText('brew install codebeauty/tap/panel');
+  navigator.clipboard.writeText('brew install codebeauty/tap/horde');
   el.classList.add('copied');
   el.querySelector('.copy-hint').textContent = 'copied!';
   setTimeout(() => {
@@ -867,7 +867,7 @@ function copyInstall(el) {
 }
 
 // Fetch latest release version from GitHub
-fetch('https://api.github.com/repos/codebeauty/panel/releases/latest')
+fetch('https://api.github.com/repos/codebeauty/horde/releases/latest')
   .then(r => r.ok ? r.json() : Promise.reject())
   .then(data => {
     const el = document.getElementById('version-tag');

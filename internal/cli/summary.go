@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/codebeauty/panel/internal/output"
-	"github.com/codebeauty/panel/internal/tui"
+	"github.com/codebeauty/horde/internal/output"
+	"github.com/codebeauty/horde/internal/tui"
 )
 
 func newSummaryCmd() *cobra.Command {

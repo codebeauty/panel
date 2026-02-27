@@ -9,19 +9,19 @@
 
 ### Go Install
 
-Requires a [released version](https://github.com/codebeauty/panel/releases).
+Requires a [released version](https://github.com/codebeauty/horde/releases).
 
 ```bash
-go install github.com/codebeauty/panel/cmd/panel@latest
+go install github.com/codebeauty/horde/cmd/horde@latest
 ```
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/codebeauty/panel.git
-cd panel
-make build      # -> dist/panel
-make install    # -> /usr/local/bin/panel
+git clone https://github.com/codebeauty/horde.git
+cd horde
+make build      # -> dist/horde
+make install    # -> /usr/local/bin/horde
 ```
 
 Build with a version tag:
@@ -42,10 +42,10 @@ make clean                    # Remove binary
 ## Project Structure
 
 ```
-cmd/panel/main.go             # Entry point
+cmd/horde/main.go             # Entry point
 internal/
 ├── adapter/                  # Adapter interface + Claude/Codex/Gemini/Amp/Cursor/Custom
-├── cli/                      # Cobra commands (run, init, tools, groups, summary, cleanup, skill)
+├── cli/                      # Cobra commands (raid, wake, agents, loadouts, summary, cleanup, skill)
 ├── config/                   # Config types, loading, saving, validation
 ├── gather/                   # Context gathering (files + git diff)
 ├── output/                   # Atomic writes, manifest, summary, cleanup scanning
@@ -158,7 +158,7 @@ For any CLI tool. Uses `{prompt}` placeholder substitution in extra flags, or `s
 
 ## Environment Variables
 
-Panel filters environment variables passed to child processes. Only these are forwarded:
+Horde filters environment variables passed to child processes. Only these are forwarded:
 
 - `PATH`, `HOME`, `USER`, `SHELL`, `TERM`
 - `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`
@@ -174,7 +174,7 @@ Additionally, `CI=true` and `NO_COLOR=1` are injected into all child processes.
 - Config files must be owner-readable only (`0o600`); group/other-writable configs are rejected
 - Output files written with `0o600`, directories with `0o700`
 - Config saves use atomic write (temp file + rename)
-- Tool names validated against `[a-zA-Z0-9._-]+`
+- Agent names validated against `[a-zA-Z0-9._-]+`
 - ANSI escape sequences stripped from captured output
 - 10MB per-stream output limit with truncation
 - Process groups isolated via `Setpgid` and killed on timeout (SIGTERM, then SIGKILL after 5s)

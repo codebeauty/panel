@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,7 +12,7 @@ import (
 
 func TestGlobalConfigDir(t *testing.T) {
 	dir := GlobalConfigDir()
-	assert.Contains(t, dir, "panel")
+	assert.True(t, strings.Contains(dir, "horde") || strings.Contains(dir, "panel"))
 	assert.NotEmpty(t, dir)
 }
 
@@ -18,7 +20,7 @@ func TestNewDefaults(t *testing.T) {
 	cfg := NewDefaults()
 
 	assert.Equal(t, 540, cfg.Defaults.Timeout)
-	assert.Equal(t, "./agents/panel", cfg.Defaults.OutputDir)
+	assert.Equal(t, "./agents/horde", cfg.Defaults.OutputDir)
 	assert.Equal(t, ReadOnlyBestEffort, cfg.Defaults.ReadOnly)
 	assert.Equal(t, 4, cfg.Defaults.MaxParallel)
 	assert.NotNil(t, cfg.Tools)
@@ -40,12 +42,14 @@ func TestValidateToolName(t *testing.T) {
 		{"", false},
 	}
 	for _, tt := range tests {
-		err := ValidateToolName(tt.name)
-		if tt.valid {
-			assert.NoError(t, err, "expected %q to be valid", tt.name)
-		} else {
-			assert.Error(t, err, "expected %q to be invalid", tt.name)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateToolName(tt.name)
+			if tt.valid {
+				assert.NoError(t, err, "expected %q to be valid", tt.name)
+			} else {
+				assert.Error(t, err, "expected %q to be invalid", tt.name)
+			}
+		})
 	}
 }
 
@@ -70,7 +74,7 @@ func TestLoadFromFile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 300, cfg.Defaults.Timeout)
 	assert.Equal(t, 2, cfg.Defaults.MaxParallel)
-	assert.Equal(t, "./agents/panel", cfg.Defaults.OutputDir) // default preserved
+	assert.Equal(t, "./agents/horde", cfg.Defaults.OutputDir) // default preserved
 	assert.Contains(t, cfg.Tools, "claude")
 	assert.Equal(t, []string{"claude"}, cfg.Groups["fast"])
 }
@@ -110,12 +114,12 @@ func TestLoadProjectConfig(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, pc)
 
-	// Test: valid .panel.json
+	// Test: valid .horde.json
 	dir := t.TempDir()
 	timeout := 120
 	outDir := "./custom/output"
 	data := `{"defaults": {"timeout": 120, "outputDir": "./custom/output"}}`
-	os.WriteFile(filepath.Join(dir, ".panel.json"), []byte(data), 0o600)
+	os.WriteFile(filepath.Join(dir, ".horde.json"), []byte(data), 0o600)
 
 	pc, err = LoadProjectConfig(dir)
 	assert.NoError(t, err)
@@ -139,7 +143,7 @@ func TestMergeWithProject(t *testing.T) {
 	MergeWithProject(cfg, pc)
 	assert.Equal(t, 120, cfg.Defaults.Timeout)
 	assert.Equal(t, ReadOnlyEnforced, cfg.Defaults.ReadOnly) // enforced > bestEffort
-	assert.Equal(t, "./agents/panel", cfg.Defaults.OutputDir) // unchanged
+	assert.Equal(t, "./agents/horde", cfg.Defaults.OutputDir) // unchanged
 }
 
 func TestMergeWithProjectNil(t *testing.T) {
@@ -164,7 +168,7 @@ func TestMergeWithProjectReadOnlyClamp(t *testing.T) {
 func TestLoadMerged(t *testing.T) {
 	dir := t.TempDir()
 	data := `{"defaults": {"outputDir": "./custom/output"}}`
-	os.WriteFile(filepath.Join(dir, ".panel.json"), []byte(data), 0o600)
+	os.WriteFile(filepath.Join(dir, ".horde.json"), []byte(data), 0o600)
 
 	cfg, err := LoadMerged(dir)
 	assert.NoError(t, err)
@@ -176,7 +180,9 @@ func TestLoadMergedNoProjectConfig(t *testing.T) {
 	dir := t.TempDir()
 	cfg, err := LoadMerged(dir)
 	assert.NoError(t, err)
-	assert.Equal(t, "./agents/panel", cfg.Defaults.OutputDir)
+	// Output dir comes from global config on disk (may be legacy ./agents/panel) or defaults (./agents/horde)
+	assert.True(t, cfg.Defaults.OutputDir == "./agents/horde" || cfg.Defaults.OutputDir == "./agents/panel",
+		"expected ./agents/horde or ./agents/panel, got %q", cfg.Defaults.OutputDir)
 }
 
 func TestToolConfigExpertField(t *testing.T) {
@@ -274,7 +280,10 @@ func TestStricterReadOnly(t *testing.T) {
 		{ReadOnlyEnforced, ReadOnlyEnforced, ReadOnlyEnforced},
 	}
 	for _, tt := range tests {
-		got := StricterReadOnly(tt.a, tt.b)
-		assert.Equal(t, tt.want, got, "StricterReadOnly(%q, %q)", tt.a, tt.b)
+		name := fmt.Sprintf("%s_vs_%s", tt.a, tt.b)
+		t.Run(name, func(t *testing.T) {
+			got := StricterReadOnly(tt.a, tt.b)
+			assert.Equal(t, tt.want, got, "StricterReadOnly(%q, %q)", tt.a, tt.b)
+		})
 	}
 }

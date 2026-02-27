@@ -3,7 +3,7 @@ package cli
 import (
 	"testing"
 
-	"github.com/codebeauty/panel/internal/config"
+	"github.com/codebeauty/horde/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 

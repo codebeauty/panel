@@ -45,7 +45,7 @@ func NewDefaults() *Config {
 		Version: 1,
 		Defaults: DefaultsConfig{
 			Timeout:     540,
-			OutputDir:   "./agents/panel",
+			OutputDir:   "./agents/horde",
 			ReadOnly:    ReadOnlyBestEffort,
 			MaxParallel: 4,
 		},
@@ -75,14 +75,19 @@ func ValidateToolName(name string) error {
 
 func GlobalConfigDir() string {
 	home := os.Getenv("HOME")
-	macOSPath := filepath.Join(home, "Library", "Application Support", "panel")
-	if _, err := os.Stat(macOSPath); err == nil {
-		return macOSPath
+	// Try horde first, fall back to panel for backward compat
+	hordePath := filepath.Join(home, "Library", "Application Support", "horde")
+	if _, err := os.Stat(hordePath); err == nil {
+		return hordePath
+	}
+	panelPath := filepath.Join(home, "Library", "Application Support", "panel")
+	if _, err := os.Stat(panelPath); err == nil {
+		return panelPath
 	}
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		return filepath.Join(xdg, "panel")
+		return filepath.Join(xdg, "horde")
 	}
-	return macOSPath
+	return hordePath
 }
 
 func GlobalConfigPath() string {
@@ -143,7 +148,7 @@ func StricterReadOnly(a, b ReadOnlyMode) ReadOnlyMode {
 	return b
 }
 
-// ProjectDefaults holds per-project overrides loaded from .panel.json.
+// ProjectDefaults holds per-project overrides loaded from .horde.json.
 type ProjectDefaults struct {
 	Timeout     *int          `json:"timeout,omitempty"`
 	OutputDir   *string       `json:"outputDir,omitempty"`
@@ -151,26 +156,30 @@ type ProjectDefaults struct {
 	MaxParallel *int          `json:"maxParallel,omitempty"`
 }
 
-// ProjectConfig represents a .panel.json file in the project root.
+// ProjectConfig represents a .horde.json file in the project root.
 type ProjectConfig struct {
 	Defaults *ProjectDefaults `json:"defaults,omitempty"`
 }
 
-// LoadProjectConfig reads .panel.json from dir. Returns nil if not found.
+// LoadProjectConfig reads .horde.json from dir, falling back to .panel.json.
+// Returns nil if neither is found.
 func LoadProjectConfig(dir string) (*ProjectConfig, error) {
-	path := filepath.Join(dir, ".panel.json")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
+	for _, name := range []string{".horde.json", ".panel.json"} {
+		path := filepath.Join(dir, name)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, fmt.Errorf("reading project config: %w", err)
 		}
-		return nil, fmt.Errorf("reading project config: %w", err)
+		var pc ProjectConfig
+		if err := json.Unmarshal(data, &pc); err != nil {
+			return nil, fmt.Errorf("parsing %s: %w", path, err)
+		}
+		return &pc, nil
 	}
-	var pc ProjectConfig
-	if err := json.Unmarshal(data, &pc); err != nil {
-		return nil, fmt.Errorf("parsing %s: %w", path, err)
-	}
-	return &pc, nil
+	return nil, nil
 }
 
 // MergeWithProject applies project-level overrides to the global config.
@@ -207,8 +216,8 @@ func Load() (*Config, error) {
 }
 
 // LoadMerged loads global config, then merges project-level overrides from
-// the .panel.json in the given directory. Use this for commands that need
-// the resolved output directory (run, cleanup, summary).
+// the .horde.json (or .panel.json) in the given directory. Use this for
+// commands that need the resolved output directory (raid, cleanup, summary).
 func LoadMerged(projectDir string) (*Config, error) {
 	cfg, err := Load()
 	if err != nil {
@@ -235,7 +244,7 @@ func Save(cfg *Config, path string) error {
 }
 
 func atomicWrite(path string, data []byte, perm os.FileMode) error {
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".panel-*")
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".horde-*")
 	if err != nil {
 		return err
 	}

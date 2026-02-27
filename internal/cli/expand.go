@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/codebeauty/panel/internal/config"
+	"github.com/codebeauty/horde/internal/config"
 )
 
 func expandDuplicateToolIDs(toolIDs []string, cfg *config.Config) []string {

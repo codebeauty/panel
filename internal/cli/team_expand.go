@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/codebeauty/panel/internal/config"
-	"github.com/codebeauty/panel/internal/expert"
+	"github.com/codebeauty/horde/internal/config"
+	"github.com/codebeauty/horde/internal/raider"
 )
 
 func expandTeamCrossProduct(toolIDs []string, teamExperts []string, cfg *config.Config) ([]string, error) {
@@ -22,7 +22,7 @@ func expandTeamCrossProduct(toolIDs []string, teamExperts []string, cfg *config.
 	for _, toolID := range deduped {
 		baseTool, ok := cfg.Tools[toolID]
 		if !ok {
-			return nil, fmt.Errorf("unknown tool %q in team expansion", toolID)
+			return nil, fmt.Errorf("unknown agent %q in squad expansion", toolID)
 		}
 		for _, expertID := range teamExperts {
 			compositeID := fmt.Sprintf("%s@%s", toolID, expertID)
@@ -45,7 +45,7 @@ func resolveTeamExperts(compositeIDs []string, expertDir string) (ids []string, 
 		}
 		eid := parts[1]
 		if _, ok := cache[eid]; !ok {
-			content, loadErr := expert.Load(eid, expertDir)
+			content, loadErr := raider.Load(eid, expertDir)
 			if loadErr != nil {
 				return nil, nil, fmt.Errorf("expert %q: %w", eid, loadErr)
 			}

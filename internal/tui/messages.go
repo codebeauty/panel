@@ -3,14 +3,14 @@ package tui
 import (
 	"time"
 
-	"github.com/codebeauty/panel/internal/runner"
+	"github.com/codebeauty/horde/internal/runner"
 )
 
 type Phase int
 
 const (
 	PhaseSelect  Phase = iota // tool multi-select
-	PhaseExpert               // expert picker
+	PhaseRaider               // expert picker
 	PhaseConfirm              // review & dispatch
 	PhaseProgress             // live execution
 	PhaseSummary              // results viewer
@@ -34,7 +34,7 @@ type ErrorMsg struct {
 	Err error
 }
 
-type doDispatchMsg struct{}
+type doDeployMsg struct{}
 
 type ToolProgress struct {
 	Status   string // pending, running, success, failed, timeout, cancelled

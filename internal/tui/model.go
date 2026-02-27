@@ -21,7 +21,7 @@ type RunConfig struct {
 	PreExpert  string // expert from -E flag
 }
 
-type DispatchFunc func(ctx context.Context, toolIDs []string, expert string)
+type DeployFunc func(ctx context.Context, toolIDs []string, expert string)
 
 type Model struct {
 	phase    Phase
@@ -32,14 +32,14 @@ type Model struct {
 
 	// Phase models
 	selectModel   SelectModel
-	expertModel   ExpertModel
+	raiderModel   RaiderModel
 	confirmModel  ConfirmModel
 	progressModel ProgressModel
 	summaryModel  SummaryModel
 
 	// Config
 	cfg      RunConfig
-	dispatch DispatchFunc
+	dispatch DeployFunc
 	cancel   context.CancelFunc
 
 	// Selected state
@@ -47,7 +47,7 @@ type Model struct {
 	selectedExpert string
 }
 
-func NewModel(cfg RunConfig, dispatch DispatchFunc) Model {
+func NewModel(cfg RunConfig, dispatch DeployFunc) Model {
 	m := Model{
 		cfg:      cfg,
 		dispatch: dispatch,
@@ -62,18 +62,18 @@ func NewModel(cfg RunConfig, dispatch DispatchFunc) Model {
 			m.phase = PhaseProgress
 			m.progressModel = NewProgressModel(cfg.AllToolIDs)
 		} else {
-			m.transitionToConfirm(false)
+			m = m.withConfirmPhase(false)
 		}
 	case cfg.SkipSelect:
 		m.selectedTools = cfg.AllToolIDs
-		m.phase = PhaseExpert
+		m.phase = PhaseRaider
 	default:
 		m.phase = PhaseSelect
 	}
 
 	m.selectModel = NewSelectModel(cfg.AllToolIDs, cfg.Adapters)
 	if !cfg.SkipExpert {
-		m.expertModel = NewExpertModel(cfg.ExpertIDs, cfg.BuiltinSet)
+		m.raiderModel = NewRaiderModel(cfg.ExpertIDs, cfg.BuiltinSet)
 	}
 
 	return m
@@ -82,7 +82,7 @@ func NewModel(cfg RunConfig, dispatch DispatchFunc) Model {
 func (m Model) Init() tea.Cmd {
 	if m.phase == PhaseProgress {
 		return tea.Batch(
-			func() tea.Msg { return doDispatchMsg{} },
+			func() tea.Msg { return doDeployMsg{} },
 			m.progressModel.Spinner.Tick,
 		)
 	}
@@ -117,16 +117,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ToolStartedMsg:
 		if s, ok := m.progressModel.Statuses[msg.ToolID]; ok {
-			s.Status = "running"
-			s.Started = time.Now()
+			updated := *s
+			updated.Status = "running"
+			updated.Started = time.Now()
+			m.progressModel.Statuses[msg.ToolID] = &updated
 		}
 		return m, nil
 
 	case ToolCompletedMsg:
 		if s, ok := m.progressModel.Statuses[msg.ToolID]; ok {
-			s.Status = string(msg.Result.Status)
-			s.Duration = msg.Result.Duration
-			s.Words = len(strings.Fields(string(msg.Result.Stdout)))
+			updated := *s
+			updated.Status = string(msg.Result.Status)
+			updated.Duration = msg.Result.Duration
+			updated.Words = len(strings.Fields(string(msg.Result.Stdout)))
+			m.progressModel.Statuses[msg.ToolID] = &updated
 		}
 		return m, nil
 
@@ -135,10 +139,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.phase = PhaseSummary
 		return m, nil
 
-	case doDispatchMsg:
+	case doDeployMsg:
 		ctx, cancel := context.WithCancel(context.Background())
 		m.cancel = cancel
-		return m, m.startDispatch(ctx)
+		return m, m.startDeploy(ctx)
 
 	case spinner.TickMsg:
 		if m.phase == PhaseProgress {
@@ -152,7 +156,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.phase {
 	case PhaseSelect:
 		return m.updateSelect(msg)
-	case PhaseExpert:
+	case PhaseRaider:
 		return m.updateExpert(msg)
 	case PhaseConfirm:
 		return m.updateConfirm(msg)
@@ -173,8 +177,8 @@ func (m Model) View() string {
 	switch m.phase {
 	case PhaseSelect:
 		return m.selectModel.View()
-	case PhaseExpert:
-		return m.expertModel.View()
+	case PhaseRaider:
+		return m.raiderModel.View()
 	case PhaseConfirm:
 		return m.confirmModel.View()
 	case PhaseProgress:
@@ -196,9 +200,9 @@ func (m Model) updateSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if m.cfg.SkipExpert {
 				m.selectedExpert = m.cfg.PreExpert
-				m.transitionToConfirm(true)
+				m = m.withConfirmPhase(true)
 			} else {
-				m.phase = PhaseExpert
+				m.phase = PhaseRaider
 			}
 			return m, nil
 		}
@@ -214,8 +218,8 @@ func (m Model) updateExpert(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, Keys.Confirm):
-			m.selectedExpert = m.expertModel.SelectedExpert()
-			m.transitionToConfirm(true)
+			m.selectedExpert = m.raiderModel.SelectedExpert()
+			m = m.withConfirmPhase(true)
 			return m, nil
 		case key.Matches(msg, Keys.Back):
 			if !m.cfg.SkipSelect {
@@ -226,7 +230,7 @@ func (m Model) updateExpert(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-	m.expertModel, cmd = m.expertModel.Update(msg)
+	m.raiderModel, cmd = m.raiderModel.Update(msg)
 	return m, cmd
 }
 
@@ -239,10 +243,10 @@ func (m Model) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.phase = PhaseProgress
 			ctx, cancel := context.WithCancel(context.Background())
 			m.cancel = cancel
-			return m, tea.Batch(m.startDispatch(ctx), m.progressModel.Spinner.Tick)
+			return m, tea.Batch(m.startDeploy(ctx), m.progressModel.Spinner.Tick)
 		case key.Matches(msg, Keys.Back):
 			if !m.cfg.SkipExpert {
-				m.phase = PhaseExpert
+				m.phase = PhaseRaider
 			} else if !m.cfg.SkipSelect {
 				m.phase = PhaseSelect
 			}
@@ -266,7 +270,7 @@ func (m Model) updateSummary(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *Model) transitionToConfirm(canGoBack bool) {
+func (m Model) withConfirmPhase(canGoBack bool) Model {
 	m.phase = PhaseConfirm
 	m.confirmModel = ConfirmModel{
 		ToolIDs:   m.selectedTools,
@@ -274,9 +278,10 @@ func (m *Model) transitionToConfirm(canGoBack bool) {
 		Prompt:    m.cfg.Prompt,
 		CanGoBack: canGoBack,
 	}
+	return m
 }
 
-func (m Model) startDispatch(ctx context.Context) tea.Cmd {
+func (m Model) startDeploy(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
 		go func() {
 			defer func() { recover() }() // program.Send may panic after exit

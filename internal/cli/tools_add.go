@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/codebeauty/panel/internal/adapter"
-	"github.com/codebeauty/panel/internal/config"
+	"github.com/codebeauty/horde/internal/adapter"
+	"github.com/codebeauty/horde/internal/config"
 )
 
 func newToolsAddCmd() *cobra.Command {
@@ -23,8 +23,8 @@ func newToolsAddCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "add <adapter>",
-		Short: "Add a new tool",
-		Long:  "Add a tool using a built-in adapter (claude, codex, gemini, amp, cursor-agent) or custom.",
+		Short: "Add a new agent",
+		Long:  "Add an agent using a built-in adapter (claude, codex, gemini, amp, cursor-agent) or custom.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			adapterType := args[0]
@@ -42,7 +42,7 @@ func newToolsAddCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&model, "model", "", "Model ID (for built-in adapters)")
-	cmd.Flags().StringVar(&name, "name", "", "Tool name (default: adapter-model compound ID)")
+	cmd.Flags().StringVar(&name, "name", "", "Agent name (default: adapter-model compound ID)")
 	cmd.Flags().StringVar(&binary, "binary", "", "Path to binary (default: auto-discover)")
 	cmd.Flags().StringVar(&flags, "flags", "", "Extra flags (space-separated)")
 	cmd.Flags().BoolVar(&stdin, "stdin", false, "Send prompt via stdin (custom adapter only)")
@@ -89,7 +89,7 @@ func addBuiltinTool(cfg *config.Config, adapterType, modelFlag, nameFlag, binary
 	}
 
 	if _, exists := cfg.Tools[toolName]; exists {
-		return fmt.Errorf("tool %q already exists — remove it first or choose a different --name", toolName)
+		return fmt.Errorf("agent %q already exists — remove it first or choose a different --name", toolName)
 	}
 
 	binPath := binaryFlag
@@ -144,7 +144,7 @@ func addCustomTool(cfg *config.Config, nameFlag, binaryFlag, flagsStr string, st
 	}
 
 	if _, exists := cfg.Tools[nameFlag]; exists {
-		return fmt.Errorf("tool %q already exists — remove it first or choose a different --name", nameFlag)
+		return fmt.Errorf("agent %q already exists — remove it first or choose a different --name", nameFlag)
 	}
 
 	cfg.Tools[nameFlag] = config.ToolConfig{

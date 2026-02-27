@@ -1,4 +1,4 @@
-package expert
+package raider
 
 import (
 	"os"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/codebeauty/panel/internal/config"
+	"github.com/codebeauty/horde/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,14 +65,16 @@ func TestValidateID(t *testing.T) {
 
 func TestDir(t *testing.T) {
 	dir := Dir()
-	assert.Contains(t, dir, "panel")
-	assert.True(t, strings.HasSuffix(dir, "experts"))
+	assert.True(t, strings.Contains(dir, "horde") || strings.Contains(dir, "panel"))
+	assert.True(t, strings.HasSuffix(dir, "raiders") || strings.HasSuffix(dir, "experts"))
 }
 
 func TestDirMatchesConfigDir(t *testing.T) {
-	expertDir := Dir()
+	dir := Dir()
 	configDir := config.GlobalConfigDir()
-	assert.Equal(t, filepath.Join(configDir, "experts"), expertDir)
+	assert.True(t,
+		dir == filepath.Join(configDir, "raiders") || dir == filepath.Join(configDir, "experts"),
+		"Dir() should be configDir/raiders or configDir/experts")
 }
 
 func TestLoad(t *testing.T) {
@@ -96,7 +98,7 @@ func TestLoadValidatesID(t *testing.T) {
 	dir := t.TempDir()
 	_, err := Load("../escape", dir)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid expert ID")
+	assert.Contains(t, err.Error(), "invalid raider ID")
 }
 
 func TestList(t *testing.T) {

@@ -8,28 +8,28 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type ExpertModel struct {
+type RaiderModel struct {
 	items   []string // expert IDs, first entry is "(none)"
 	cursor  int
 	builtin map[string]bool
 }
 
-func NewExpertModel(expertIDs []string, builtinSet map[string]bool) ExpertModel {
+func NewRaiderModel(expertIDs []string, builtinSet map[string]bool) RaiderModel {
 	items := append([]string{"(none)"}, expertIDs...)
-	return ExpertModel{
+	return RaiderModel{
 		items:   items,
 		builtin: builtinSet,
 	}
 }
 
-func (m ExpertModel) SelectedExpert() string {
+func (m RaiderModel) SelectedExpert() string {
 	if m.cursor == 0 {
 		return ""
 	}
 	return m.items[m.cursor]
 }
 
-func (m ExpertModel) Update(msg tea.Msg) (ExpertModel, tea.Cmd) {
+func (m RaiderModel) Update(msg tea.Msg) (RaiderModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -46,10 +46,10 @@ func (m ExpertModel) Update(msg tea.Msg) (ExpertModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m ExpertModel) View() string {
+func (m RaiderModel) View() string {
 	var b strings.Builder
 
-	title := StyleTitle.Render("Select Expert")
+	title := StyleTitle.Render("Select Raider")
 	b.WriteString(fmt.Sprintf("  %s\n\n", title))
 
 	for i, id := range m.items {

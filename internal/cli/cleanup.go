@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/codebeauty/panel/internal/output"
+	"github.com/codebeauty/horde/internal/output"
 )
 
 type jsonCandidate struct {

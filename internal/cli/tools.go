@@ -11,16 +11,17 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/codebeauty/panel/internal/adapter"
-	"github.com/codebeauty/panel/internal/config"
-	"github.com/codebeauty/panel/internal/runner"
-	"github.com/codebeauty/panel/internal/tui"
+	"github.com/codebeauty/horde/internal/adapter"
+	"github.com/codebeauty/horde/internal/config"
+	"github.com/codebeauty/horde/internal/runner"
+	"github.com/codebeauty/horde/internal/tui"
 )
 
 func newToolsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "tools",
-		Short: "Manage configured AI tools",
+		Use:     "agents",
+		Aliases: []string{"tools"},
+		Short:   "Manage configured AI agents",
 	}
 
 	cmd.AddCommand(newToolsListCmd())
@@ -36,7 +37,7 @@ func newToolsListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "Show all configured tools",
+		Short:   "Show all configured agents",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
 			if err != nil {
@@ -44,7 +45,7 @@ func newToolsListCmd() *cobra.Command {
 			}
 
 			if len(cfg.Tools) == 0 {
-				fmt.Println("No tools configured. Run 'panel init' to discover tools.")
+				fmt.Println("No agents configured. Run 'horde wake' to discover agents.")
 				return nil
 			}
 
@@ -56,7 +57,7 @@ func newToolsListCmd() *cobra.Command {
 
 			if !tui.IsTTY() {
 				w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-				fmt.Fprintln(w, "ID\tADAPTER\tBINARY\tENABLED\tEXPERT")
+				fmt.Fprintln(w, "ID\tADAPTER\tBINARY\tENABLED\tRAIDER")
 				for _, id := range ids {
 					t := cfg.Tools[id]
 					fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n", id, t.Adapter, t.Binary, t.Enabled, t.Expert)
@@ -80,7 +81,7 @@ func newToolsListCmd() *cobra.Command {
 				})
 			}
 			t := tui.Table{
-				Headers: []string{"ID", "ADAPTER", "ENABLED", "EXPERT"},
+				Headers: []string{"ID", "ADAPTER", "ENABLED", "RAIDER"},
 				Rows:    rows,
 			}
 			fmt.Print(t.Render())
@@ -92,7 +93,7 @@ func newToolsListCmd() *cobra.Command {
 func newToolsRemoveCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove <id>",
-		Short: "Remove a tool",
+		Short: "Remove an agent",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
@@ -101,8 +102,8 @@ func newToolsRemoveCmd() *cobra.Command {
 			}
 			id := args[0]
 			if _, ok := cfg.Tools[id]; !ok {
-				return fmt.Errorf("tool %q not found", id)
-			}
+				return fmt.Errorf("agent %q not found", id)
+	}
 			delete(cfg.Tools, id)
 			for name, members := range cfg.Groups {
 				var filtered []string
@@ -125,7 +126,7 @@ func newToolsRemoveCmd() *cobra.Command {
 func newToolsTestCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "test [id]",
-		Short: "Test tool(s) by running with a trivial prompt",
+		Short: "Test agent(s) by running with a trivial prompt",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
 			if err != nil {
@@ -151,7 +152,7 @@ func newToolsTestCmd() *cobra.Command {
 				}
 			}
 			if failed > 0 {
-				return fmt.Errorf("%d tool(s) failed", failed)
+				return fmt.Errorf("%d agent(s) failed", failed)
 			}
 			return nil
 		},
@@ -164,7 +165,7 @@ func testTool(cfg *config.Config, id string) error {
 		return err
 	}
 
-	outDir, err := os.MkdirTemp("", "panel-test-*")
+	outDir, err := os.MkdirTemp("", "horde-test-*")
 	if err != nil {
 		return err
 	}
@@ -198,7 +199,7 @@ func testTool(cfg *config.Config, id string) error {
 func newToolsDiscoverCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "discover",
-		Short: "Scan for installed AI tools not yet configured",
+		Short: "Scan for installed AI agents not yet configured",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
 			if err != nil {
@@ -229,9 +230,9 @@ func newToolsDiscoverCmd() *cobra.Command {
 				}
 			}
 			if found == 0 {
-				fmt.Fprintln(os.Stderr, "No new tools found.")
+				fmt.Fprintln(os.Stderr, "No new agents found.")
 			} else {
-				fmt.Fprintf(os.Stderr, "\nRun 'panel init --auto' to add them.\n")
+				fmt.Fprintf(os.Stderr, "\nRun 'horde wake --auto' to add them.\n")
 			}
 			return nil
 		},
@@ -241,7 +242,7 @@ func newToolsDiscoverCmd() *cobra.Command {
 func newToolsRenameCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "rename <old> <new>",
-		Short: "Rename a tool",
+		Short: "Rename an agent",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			oldName := args[0]
@@ -260,12 +261,12 @@ func newToolsRenameCmd() *cobra.Command {
 			// Validate old exists
 			tc, ok := cfg.Tools[oldName]
 			if !ok {
-				return fmt.Errorf("tool %q not found", oldName)
+				return fmt.Errorf("agent %q not found", oldName)
 			}
 
 			// Validate new doesn't exist
 			if _, exists := cfg.Tools[newName]; exists {
-				return fmt.Errorf("tool %q already exists", newName)
+				return fmt.Errorf("agent %q already exists", newName)
 			}
 
 			// Move config entry

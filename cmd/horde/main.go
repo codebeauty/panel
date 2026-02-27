@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/codebeauty/panel/internal/cli"
+	"github.com/codebeauty/horde/internal/cli"
 )
 
 func main() {

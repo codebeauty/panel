@@ -17,7 +17,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
-	"github.com/codebeauty/panel/internal/adapter"
+	"github.com/codebeauty/horde/internal/adapter"
 )
 
 var allowedEnvKeys = map[string]bool{

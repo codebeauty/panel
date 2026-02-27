@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/codebeauty/panel/internal/runner"
+	"github.com/codebeauty/horde/internal/runner"
 )
 
 type Manifest struct {

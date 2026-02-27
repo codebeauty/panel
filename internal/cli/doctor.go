@@ -12,8 +12,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
-	"github.com/codebeauty/panel/internal/config"
-	"github.com/codebeauty/panel/internal/tui"
+	"github.com/codebeauty/horde/internal/config"
+	"github.com/codebeauty/horde/internal/tui"
 )
 
 func newDoctorCmd() *cobra.Command {
@@ -70,9 +70,9 @@ func newDoctorCmd() *cobra.Command {
 
 			// 3. Tool count
 			if len(cfg.Tools) == 0 {
-				warn("No tools configured — run 'panel init'")
+				warn("No agents configured — run 'horde wake'")
 			} else {
-				pass(fmt.Sprintf("%d tool(s) configured", len(cfg.Tools)))
+				pass(fmt.Sprintf("%d agent(s) configured", len(cfg.Tools)))
 			}
 
 			// 4. Per-tool checks (sorted for deterministic output)
@@ -148,13 +148,13 @@ func newDoctorCmd() *cobra.Command {
 				allValid := true
 				for _, member := range members {
 					if _, exists := cfg.Tools[member]; !exists {
-						fail(fmt.Sprintf("group %s: unknown tool %s", groupName, member))
+						fail(fmt.Sprintf("loadout %s: unknown agent %s", groupName, member))
 						failed = true
 						allValid = false
 					}
 				}
 				if allValid {
-					pass(fmt.Sprintf("group %s: %d tool(s)", groupName, len(members)))
+					pass(fmt.Sprintf("loadout %s: %d agent(s)", groupName, len(members)))
 				}
 			}
 

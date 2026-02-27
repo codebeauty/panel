@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/codebeauty/panel/internal/config"
-	"github.com/codebeauty/panel/internal/tui"
+	"github.com/codebeauty/horde/internal/config"
+	"github.com/codebeauty/horde/internal/tui"
 )
 
 var jsonKeyRe = regexp.MustCompile(`^(\s*)"([^"]+)":`)
@@ -27,8 +27,9 @@ func colorizeJSON(line string) string {
 
 func newConfigCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "config",
-		Short: "Show resolved configuration",
+		Use:     "stash",
+		Aliases: []string{"config"},
+		Short:   "Show resolved configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if tui.IsTTY() {
 				fmt.Fprintf(os.Stderr, "%s %s\n\n",

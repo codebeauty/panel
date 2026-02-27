@@ -46,7 +46,7 @@ func WritePrompt(dir, prompt string) error {
 }
 
 func AtomicWrite(path string, data []byte, perm os.FileMode) error {
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".panel-*")
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".horde-*")
 	if err != nil {
 		return err
 	}

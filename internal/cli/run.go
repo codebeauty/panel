@@ -18,14 +18,14 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/codebeauty/panel/internal/adapter"
-	"github.com/codebeauty/panel/internal/config"
-	"github.com/codebeauty/panel/internal/expert"
-	"github.com/codebeauty/panel/internal/gather"
-	"github.com/codebeauty/panel/internal/output"
-	"github.com/codebeauty/panel/internal/runner"
-	"github.com/codebeauty/panel/internal/tui"
-	"github.com/codebeauty/panel/internal/ui"
+	"github.com/codebeauty/horde/internal/adapter"
+	"github.com/codebeauty/horde/internal/config"
+	"github.com/codebeauty/horde/internal/raider"
+	"github.com/codebeauty/horde/internal/gather"
+	"github.com/codebeauty/horde/internal/output"
+	"github.com/codebeauty/horde/internal/runner"
+	"github.com/codebeauty/horde/internal/tui"
+	"github.com/codebeauty/horde/internal/ui"
 )
 
 func newRunCmd() *cobra.Command {
@@ -45,17 +45,32 @@ func newRunCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "run [prompt]",
-		Short: "Dispatch a prompt to AI tools in parallel",
-		Long:  "Sends the same prompt to multiple AI coding agents simultaneously and collects their responses.",
+		Use:     "raid [prompt]",
+		Aliases: []string{"run"},
+		Short:   "Deploy a prompt to AI agents in parallel",
+		Long:    "Sends the same prompt to multiple AI coding agents simultaneously and collects their responses.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.LoadMerged(mustGetwd())
 			if err != nil {
 				return fmt.Errorf("loading config: %w", err)
 			}
 
+			// Merge hidden backward-compat flags
+			if v, _ := cmd.Flags().GetString("tools"); v != "" && toolsFlag == "" {
+				toolsFlag = v
+			}
+			if v, _ := cmd.Flags().GetString("group"); v != "" && groupFlag == "" {
+				groupFlag = v
+			}
+			if v, _ := cmd.Flags().GetString("expert"); v != "" && expertFlag == "" {
+				expertFlag = v
+			}
+			if v, _ := cmd.Flags().GetString("team"); v != "" && teamFlag == "" {
+				teamFlag = v
+			}
+
 			if teamFlag != "" && expertFlag != "" {
-				return fmt.Errorf("--team and --expert are mutually exclusive")
+				return fmt.Errorf("--squad and --raider are mutually exclusive")
 			}
 
 			prompt, err := resolvePrompt(fileFlag, args)
@@ -98,7 +113,7 @@ func newRunCmd() *cobra.Command {
 					return err
 				}
 				if len(toolIDs) == 0 {
-					return fmt.Errorf("no tools configured — run 'panel init' to set up tools")
+					return fmt.Errorf("no agents configured — run 'horde wake' to set up agents")
 				}
 				if teamFlag != "" {
 					teamExperts, err := lookupTeam(cfg, teamFlag)
@@ -122,7 +137,7 @@ func newRunCmd() *cobra.Command {
 				return err
 			}
 			if len(toolIDs) == 0 {
-				return fmt.Errorf("no tools configured — run 'panel init' to set up tools")
+				return fmt.Errorf("no agents configured — run 'horde wake' to set up agents")
 			}
 
 			if toolsFlag == "" && groupFlag == "" && len(toolIDs) > 1 &&
@@ -146,7 +161,7 @@ func newRunCmd() *cobra.Command {
 				// Confirmation prompt for large cross-products
 				if len(toolIDs) > 8 && !yesFlag &&
 					term.IsTerminal(int(os.Stderr.Fd())) && term.IsTerminal(int(os.Stdin.Fd())) {
-					fmt.Fprintf(os.Stderr, "This will dispatch %d runs (%d experts × %d tools). Continue? [y/N] ",
+					fmt.Fprintf(os.Stderr, "This will deploy %d runs (%d raiders × %d agents). Continue? [y/N] ",
 						len(toolIDs), len(teamExperts), len(toolIDs)/len(teamExperts))
 					scanner := bufio.NewScanner(os.Stdin)
 					if !scanner.Scan() || strings.ToLower(strings.TrimSpace(scanner.Text())) != "y" {
@@ -165,7 +180,7 @@ func newRunCmd() *cobra.Command {
 			if dryRun {
 				var dryExpertIDs []string
 				if teamFlag != "" {
-					eids, _, dryErr := resolveTeamExperts(toolIDs, expert.Dir())
+					eids, _, dryErr := resolveTeamExperts(toolIDs, raider.Dir())
 					if dryErr != nil {
 						fmt.Fprintf(os.Stderr, "warning: %v\n", dryErr)
 					}
@@ -206,7 +221,7 @@ func newRunCmd() *cobra.Command {
 				return fmt.Errorf("writing prompt: %w", err)
 			}
 
-			fmt.Fprintf(os.Stderr, "Dispatching to %d tool(s): %s\n", len(tools), strings.Join(toolIDs, ", "))
+			fmt.Fprintf(os.Stderr, "Deploying to %d agent(s): %s\n", len(tools), strings.Join(toolIDs, ", "))
 			fmt.Fprintf(os.Stderr, "Output: %s\n", runDir)
 
 			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -273,18 +288,28 @@ func newRunCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&toolsFlag, "tools", "t", "", "Comma-separated tool IDs")
-	cmd.Flags().StringVarP(&groupFlag, "group", "g", "", "Named group from config")
+	cmd.Flags().StringVarP(&toolsFlag, "agents", "a", "", "Comma-separated agent IDs")
+	cmd.Flags().StringVarP(&groupFlag, "loadout", "l", "", "Named loadout from config")
 	cmd.Flags().StringVarP(&readOnly, "read-only", "r", "", "Read-only mode: enforced, bestEffort, none")
-	cmd.Flags().IntVar(&timeout, "timeout", 0, "Per-tool timeout in seconds")
+	cmd.Flags().IntVar(&timeout, "timeout", 0, "Per-agent timeout in seconds")
 	cmd.Flags().StringVarP(&outputDir, "output", "o", "", "Output directory override")
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output manifest as JSON")
 	cmd.Flags().StringVarP(&fileFlag, "file", "f", "", "Read prompt from file")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show invocations without executing")
 	cmd.Flags().StringVarP(&contextFlag, "context", "c", "", "Gather context from paths (comma-separated, or \".\" for git diff)")
-	cmd.Flags().StringVarP(&expertFlag, "expert", "E", "", "Expert ID to apply to all tools")
-	cmd.Flags().StringVarP(&teamFlag, "team", "T", "", "Named team of experts from config")
+	cmd.Flags().StringVarP(&expertFlag, "raider", "R", "", "Raider ID to apply to all agents")
+	cmd.Flags().StringVarP(&teamFlag, "squad", "S", "", "Named squad of raiders from config")
 	cmd.Flags().BoolVar(&yesFlag, "yes", false, "Skip confirmation prompts")
+
+	// Hidden backward-compat aliases (old flag names, no short flags)
+	cmd.Flags().String("tools", "", "")
+	cmd.Flags().MarkHidden("tools")
+	cmd.Flags().String("group", "", "")
+	cmd.Flags().MarkHidden("group")
+	cmd.Flags().String("expert", "", "")
+	cmd.Flags().MarkHidden("expert")
+	cmd.Flags().String("team", "", "")
+	cmd.Flags().MarkHidden("team")
 
 	return cmd
 }
@@ -321,7 +346,7 @@ func resolveTools(cfg *config.Config, toolsFlag, groupFlag string) ([]string, er
 	if groupFlag != "" {
 		ids, ok := cfg.Groups[groupFlag]
 		if !ok {
-			return nil, fmt.Errorf("unknown group: %q", groupFlag)
+			return nil, fmt.Errorf("unknown loadout: %q", groupFlag)
 		}
 		return ids, nil
 	}
@@ -351,7 +376,7 @@ func buildTools(cfg *config.Config, toolIDs []string) ([]runner.Tool, error) {
 	for _, id := range toolIDs {
 		tc, ok := cfg.Tools[id]
 		if !ok {
-			return nil, fmt.Errorf("unknown tool: %q", id)
+			return nil, fmt.Errorf("unknown agent: %q", id)
 		}
 
 		adapterName := tc.Adapter
@@ -383,10 +408,10 @@ func buildTools(cfg *config.Config, toolIDs []string) ([]runner.Tool, error) {
 func lookupTeam(cfg *config.Config, teamName string) ([]string, error) {
 	experts, ok := cfg.Teams[teamName]
 	if !ok {
-		return nil, fmt.Errorf("unknown team: %q", teamName)
+		return nil, fmt.Errorf("unknown squad: %q", teamName)
 	}
 	if len(experts) == 0 {
-		return nil, fmt.Errorf("team %q has no experts", teamName)
+		return nil, fmt.Errorf("squad %q has no raiders", teamName)
 	}
 	return experts, nil
 }
@@ -514,7 +539,7 @@ func stderrSnippet(stderr []byte) string {
 }
 
 func resolveToolExperts(tools []runner.Tool, cfg *config.Config, expertFlag string) (ids []string, contents []string, err error) {
-	expertDir := expert.Dir()
+	expertDir := raider.Dir()
 	ids = make([]string, len(tools))
 	contents = make([]string, len(tools))
 
@@ -528,7 +553,7 @@ func resolveToolExperts(tools []runner.Tool, cfg *config.Config, expertFlag stri
 		if eid == "" {
 			continue
 		}
-		content, err := expert.Load(eid, expertDir)
+		content, err := raider.Load(eid, expertDir)
 		if err != nil {
 			return nil, nil, fmt.Errorf("loading expert %q for %s: %w", eid, tool.ID, err)
 		}
@@ -540,7 +565,7 @@ func resolveToolExperts(tools []runner.Tool, cfg *config.Config, expertFlag stri
 
 func resolveExperts(tools []runner.Tool, toolIDs []string, cfg *config.Config, expertFlag, teamFlag string) (ids []string, contents []string, err error) {
 	if teamFlag != "" {
-		return resolveTeamExperts(toolIDs, expert.Dir())
+		return resolveTeamExperts(toolIDs, raider.Dir())
 	}
 	return resolveToolExperts(tools, cfg, expertFlag)
 }
@@ -561,7 +586,7 @@ func buildExpertParams(tools []runner.Tool, expertContents []string, baseParams 
 	for i, tool := range tools {
 		p := baseParams
 		if expertContents[i] != "" {
-			p.Prompt = expert.Inject(expertContents[i], prompt)
+			p.Prompt = raider.Inject(expertContents[i], prompt)
 			toolPromptPath := filepath.Join(runDir, tool.ID+".prompt.md")
 			if err := os.WriteFile(toolPromptPath, []byte(p.Prompt), 0o600); err != nil {
 				return nil, fmt.Errorf("writing expert prompt for %s: %w", tool.ID, err)

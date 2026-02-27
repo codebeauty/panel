@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/codebeauty/panel/internal/runner"
+	"github.com/codebeauty/horde/internal/runner"
 )
 
 func noopDispatch(_ context.Context, _ []string, _ string) {}
@@ -28,7 +28,7 @@ func TestPhaseTransition_SelectToExpertToConfirm(t *testing.T) {
 	// Confirm in select phase (all selected by default)
 	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = result.(Model)
-	assert.Equal(t, PhaseExpert, m.phase)
+	assert.Equal(t, PhaseRaider, m.phase)
 
 	// Confirm in expert phase
 	result, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -74,7 +74,7 @@ func TestPhaseTransition_SkipSelect_GoesToExpert(t *testing.T) {
 		SkipSelect: true,
 	}
 	m := NewModel(cfg, noopDispatch)
-	assert.Equal(t, PhaseExpert, m.phase)
+	assert.Equal(t, PhaseRaider, m.phase)
 }
 
 func TestBackNavigation_ExpertToSelect(t *testing.T) {
@@ -91,7 +91,7 @@ func TestBackNavigation_ExpertToSelect(t *testing.T) {
 	// Go to expert
 	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = result.(Model)
-	assert.Equal(t, PhaseExpert, m.phase)
+	assert.Equal(t, PhaseRaider, m.phase)
 
 	// Back to select
 	result, _ = m.Update(tea.KeyMsg{Type: tea.KeyEscape})
@@ -119,7 +119,7 @@ func TestBackNavigation_ConfirmToExpert(t *testing.T) {
 	// Back to expert
 	result, _ = m.Update(tea.KeyMsg{Type: tea.KeyEscape})
 	m = result.(Model)
-	assert.Equal(t, PhaseExpert, m.phase)
+	assert.Equal(t, PhaseRaider, m.phase)
 }
 
 func TestBackNavigation_ConfirmStuck_WhenBothSkipped(t *testing.T) {

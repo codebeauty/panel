@@ -67,7 +67,7 @@ func (m SelectModel) Update(msg tea.Msg) (SelectModel, tea.Cmd) {
 func (m SelectModel) View() string {
 	var b strings.Builder
 
-	title := StyleTitle.Render("Select Tools")
+	title := StyleTitle.Render("Select Agents")
 	b.WriteString(fmt.Sprintf("  %s\n\n", title))
 
 	for i, id := range m.items {

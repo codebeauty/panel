@@ -59,7 +59,7 @@ func TestScanCandidates(t *testing.T) {
 	})
 
 	t.Run("non-existent base dir returns nil", func(t *testing.T) {
-		candidates, err := ScanCandidates("/tmp/panel-does-not-exist-"+t.Name(), time.Now())
+		candidates, err := ScanCandidates("/tmp/horde-does-not-exist-"+t.Name(), time.Now())
 		assert.NoError(t, err)
 		assert.Nil(t, candidates)
 	})
@@ -122,7 +122,7 @@ func TestScanRuns(t *testing.T) {
 	})
 
 	t.Run("non-existent dir returns nil", func(t *testing.T) {
-		runs, err := ScanRuns("/tmp/panel-nonexistent-" + t.Name())
+		runs, err := ScanRuns("/tmp/horde-nonexistent-" + t.Name())
 		assert.NoError(t, err)
 		assert.Nil(t, runs)
 	})

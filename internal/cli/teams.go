@@ -8,15 +8,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/codebeauty/panel/internal/config"
-	"github.com/codebeauty/panel/internal/expert"
-	"github.com/codebeauty/panel/internal/tui"
+	"github.com/codebeauty/horde/internal/config"
+	"github.com/codebeauty/horde/internal/raider"
+	"github.com/codebeauty/horde/internal/tui"
 )
 
 func newTeamsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "teams",
-		Short: "Manage expert teams",
+		Use:     "squads",
+		Aliases: []string{"teams"},
+		Short:   "Manage raider squads",
 	}
 	cmd.AddCommand(newTeamsListCmd())
 	cmd.AddCommand(newTeamsCreateCmd())
@@ -27,14 +28,14 @@ func newTeamsCmd() *cobra.Command {
 func newTeamsListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
-		Short: "Show all teams",
+		Short: "Show all squads",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
 			if err != nil {
 				return err
 			}
 			if len(cfg.Teams) == 0 {
-				fmt.Println("No teams configured.")
+				fmt.Println("No squads configured.")
 				return nil
 			}
 
@@ -59,7 +60,7 @@ func newTeamsListCmd() *cobra.Command {
 				})
 			}
 			t := tui.Table{
-				Headers: []string{"TEAM", "EXPERTS"},
+				Headers: []string{"SQUAD", "RAIDERS"},
 				Rows:    rows,
 			}
 			fmt.Print(t.Render())
@@ -73,33 +74,38 @@ func newTeamsCreateCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "create <name>",
-		Short: "Create a team of experts",
+		Short: "Create a squad of raiders",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Merge hidden backward-compat flag
+			if v, _ := cmd.Flags().GetString("experts"); v != "" && expertsFlag == "" {
+				expertsFlag = v
+			}
+
 			name := args[0]
 			if err := config.ValidateName(name); err != nil {
-				return fmt.Errorf("invalid team name: %w", err)
+				return fmt.Errorf("invalid squad name: %w", err)
 			}
 
 			expertIDs := strings.Split(expertsFlag, ",")
 			if len(expertIDs) == 0 || (len(expertIDs) == 1 && expertIDs[0] == "") {
-				return fmt.Errorf("team must have at least one expert")
+				return fmt.Errorf("squad must have at least one raider")
 			}
 
 			// Check for duplicates
 			seen := make(map[string]bool)
 			for _, id := range expertIDs {
 				if seen[id] {
-					return fmt.Errorf("duplicate expert %q in team", id)
+					return fmt.Errorf("duplicate raider %q in squad", id)
 				}
 				seen[id] = true
 			}
 
-			// Validate all experts exist on disk
-			expertDir := expert.Dir()
+			// Validate all raiders exist on disk
+			expertDir := raider.Dir()
 			for _, id := range expertIDs {
-				if _, err := expert.Load(id, expertDir); err != nil {
-					return fmt.Errorf("unknown expert: %w", err)
+				if _, err := raider.Load(id, expertDir); err != nil {
+					return fmt.Errorf("unknown raider: %w", err)
 				}
 			}
 
@@ -110,7 +116,7 @@ func newTeamsCreateCmd() *cobra.Command {
 
 			// Warn about name collisions
 			if _, ok := cfg.Groups[name]; ok {
-				fmt.Fprintf(os.Stderr, "Warning: %q also exists as a group name\n", name)
+				fmt.Fprintf(os.Stderr, "Warning: %q also exists as a loadout name\n", name)
 			}
 
 			verb := "Created"
@@ -122,20 +128,21 @@ func newTeamsCreateCmd() *cobra.Command {
 			if err := config.Save(cfg, config.GlobalConfigPath()); err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "%s team %q: %s\n", verb, name, strings.Join(expertIDs, ", "))
+			fmt.Fprintf(os.Stderr, "%s squad %q: %s\n", verb, name, strings.Join(expertIDs, ", "))
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&expertsFlag, "experts", "", "Comma-separated expert IDs (required)")
-	cmd.MarkFlagRequired("experts")
+	cmd.Flags().StringVar(&expertsFlag, "raiders", "", "Comma-separated raider IDs (required)")
+	cmd.Flags().String("experts", "", "")
+	cmd.Flags().MarkHidden("experts")
 	return cmd
 }
 
 func newTeamsDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete <name>",
-		Short: "Delete a team",
+		Short: "Delete a squad",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
@@ -144,13 +151,13 @@ func newTeamsDeleteCmd() *cobra.Command {
 			}
 			name := args[0]
 			if _, ok := cfg.Teams[name]; !ok {
-				return fmt.Errorf("team %q not found", name)
+				return fmt.Errorf("squad %q not found", name)
 			}
 			delete(cfg.Teams, name)
 			if err := config.Save(cfg, config.GlobalConfigPath()); err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "Deleted team %q\n", name)
+			fmt.Fprintf(os.Stderr, "Deleted squad %q\n", name)
 			return nil
 		},
 	}

@@ -10,12 +10,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/codebeauty/panel/internal/adapter"
-	"github.com/codebeauty/panel/internal/config"
-	"github.com/codebeauty/panel/internal/expert"
-	"github.com/codebeauty/panel/internal/output"
-	"github.com/codebeauty/panel/internal/runner"
-	"github.com/codebeauty/panel/internal/tui"
+	"github.com/codebeauty/horde/internal/adapter"
+	"github.com/codebeauty/horde/internal/config"
+	"github.com/codebeauty/horde/internal/raider"
+	"github.com/codebeauty/horde/internal/output"
+	"github.com/codebeauty/horde/internal/runner"
+	"github.com/codebeauty/horde/internal/tui"
 )
 
 func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadOnlyMode, expertFlag, teamFlag string, preSelected bool) error {
@@ -30,10 +30,10 @@ func runTUI(cfg *config.Config, prompt string, toolIDs []string, ro config.ReadO
 
 	var expertIDs []string
 	builtinSet := make(map[string]bool)
-	if eids, err := expert.List(expert.Dir()); err == nil {
+	if eids, err := raider.List(raider.Dir()); err == nil {
 		expertIDs = eids
 		for _, id := range eids {
-			if _, ok := expert.Builtins[id]; ok {
+			if _, ok := raider.Builtins[id]; ok {
 				builtinSet[id] = true
 			}
 		}
@@ -162,7 +162,7 @@ func resolveToolIDsForTUI(cfg *config.Config, toolsFlag, groupFlag string) (ids 
 	if groupFlag != "" {
 		ids, ok := cfg.Groups[groupFlag]
 		if !ok {
-			return nil, false, fmt.Errorf("unknown group: %q", groupFlag)
+			return nil, false, fmt.Errorf("unknown loadout: %q", groupFlag)
 		}
 		return ids, true, nil
 	}

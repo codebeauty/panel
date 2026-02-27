@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/codebeauty/panel/internal/runner"
+	"github.com/codebeauty/horde/internal/runner"
 	"github.com/stretchr/testify/assert"
 )
 

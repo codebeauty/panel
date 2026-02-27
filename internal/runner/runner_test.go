@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/codebeauty/panel/internal/adapter"
+	"github.com/codebeauty/horde/internal/adapter"
 	"github.com/stretchr/testify/assert"
 )
 
 var mockBinary string
 
 func TestMain(m *testing.M) {
-	dir, err := os.MkdirTemp("", "panel-test-*")
+	dir, err := os.MkdirTemp("", "horde-test-*")
 	if err != nil {
 		panic(err)
 	}

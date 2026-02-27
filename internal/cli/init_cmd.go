@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/codebeauty/panel/internal/adapter"
-	"github.com/codebeauty/panel/internal/config"
-	"github.com/codebeauty/panel/internal/expert"
+	"github.com/codebeauty/horde/internal/adapter"
+	"github.com/codebeauty/horde/internal/config"
+	"github.com/codebeauty/horde/internal/raider"
 )
 
 var knownTools = []struct {
@@ -38,8 +38,9 @@ func init() {
 
 func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "init",
-		Short: "Discover and configure installed AI CLI tools",
+		Use:     "wake",
+		Aliases: []string{"init"},
+		Short:   "Discover and configure installed AI CLI agents",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
 			if err != nil {
@@ -92,7 +93,7 @@ func newInitCmd() *cobra.Command {
 			}
 
 			if discovered == 0 && len(cfg.Tools) == 0 {
-				return fmt.Errorf("no AI CLI tools found — install claude, codex, gemini, or amp first")
+				return fmt.Errorf("no AI CLI agents found — install claude, codex, gemini, or amp first")
 			}
 
 			cfgPath := config.GlobalConfigPath()
@@ -103,18 +104,18 @@ func newInitCmd() *cobra.Command {
 			fmt.Fprintf(os.Stderr, "\nConfig written to: %s\n", cfgPath)
 			fmt.Fprintf(os.Stderr, "%d tool(s) configured\n", len(cfg.Tools))
 
-			// Sync built-in experts
-			expertDir := expert.Dir()
-			var diffFn expert.DiffFunc
+			// Sync built-in raiders
+			expertDir := raider.Dir()
+			var diffFn raider.DiffFunc
 			auto, _ := cmd.Flags().GetBool("auto")
 			if !auto {
 				diffFn = syncDiffPrompt
 			}
-			written, pErr := expert.SyncBuiltins(expertDir, diffFn)
+			written, pErr := raider.SyncBuiltins(expertDir, diffFn)
 			if pErr != nil {
-				fmt.Fprintf(os.Stderr, "warning: failed to sync experts: %v\n", pErr)
+				fmt.Fprintf(os.Stderr, "warning: failed to sync raiders: %v\n", pErr)
 			} else if written > 0 {
-				fmt.Fprintf(os.Stderr, "%d expert(s) installed to %s\n", written, expertDir)
+				fmt.Fprintf(os.Stderr, "%d raider(s) installed to %s\n", written, expertDir)
 			}
 
 			return nil

@@ -1,4 +1,4 @@
-module github.com/codebeauty/panel
+module github.com/codebeauty/horde
 
 go 1.25.0
 

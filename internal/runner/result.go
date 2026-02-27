@@ -3,7 +3,7 @@ package runner
 import (
 	"time"
 
-	"github.com/codebeauty/panel/internal/adapter"
+	"github.com/codebeauty/horde/internal/adapter"
 )
 
 type Status string
